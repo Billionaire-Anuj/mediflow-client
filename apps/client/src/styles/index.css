@@ -1,0 +1,213 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Plus+Jakarta+Sans:wght@500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Healthcare-grade calm theme */
+    --background: 210 20% 98%;
+    --foreground: 220 20% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+
+    /* Primary: Teal for healthcare trust */
+    --primary: 173 58% 39%;
+    --primary-foreground: 0 0% 100%;
+    --primary-hover: 173 58% 34%;
+
+    /* Secondary: Soft blue-gray */
+    --secondary: 210 20% 96%;
+    --secondary-foreground: 220 20% 25%;
+
+    --muted: 210 15% 94%;
+    --muted-foreground: 220 10% 45%;
+
+    --accent: 173 40% 94%;
+    --accent-foreground: 173 58% 30%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 15% 90%;
+    --input: 210 15% 90%;
+    --ring: 173 58% 39%;
+
+    --radius: 0.5rem;
+
+    /* Status Colors */
+    --status-success: 142 71% 45%;
+    --status-success-bg: 142 71% 95%;
+    --status-success-foreground: 142 71% 25%;
+
+    --status-warning: 38 92% 50%;
+    --status-warning-bg: 38 92% 95%;
+    --status-warning-foreground: 38 92% 25%;
+
+    --status-danger: 0 72% 51%;
+    --status-danger-bg: 0 72% 95%;
+    --status-danger-foreground: 0 72% 30%;
+
+    --status-info: 210 100% 50%;
+    --status-info-bg: 210 100% 95%;
+    --status-info-foreground: 210 100% 30%;
+
+    /* Sidebar */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 20% 25%;
+    --sidebar-primary: 173 58% 39%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 173 40% 96%;
+    --sidebar-accent-foreground: 173 58% 30%;
+    --sidebar-border: 210 15% 92%;
+    --sidebar-ring: 173 58% 39%;
+
+    /* Gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(173 58% 39%), hsl(180 50% 45%));
+    --gradient-hero: linear-gradient(180deg, hsl(210 20% 98%), hsl(173 40% 97%));
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(210 20% 99%));
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 hsl(220 20% 10% / 0.03);
+    --shadow-md: 0 4px 6px -1px hsl(220 20% 10% / 0.05), 0 2px 4px -2px hsl(220 20% 10% / 0.03);
+    --shadow-lg: 0 10px 15px -3px hsl(220 20% 10% / 0.06), 0 4px 6px -4px hsl(220 20% 10% / 0.03);
+    --shadow-card: 0 1px 3px 0 hsl(220 20% 10% / 0.04), 0 1px 2px -1px hsl(220 20% 10% / 0.02);
+  }
+
+  .dark {
+    --background: 220 20% 8%;
+    --foreground: 210 20% 98%;
+
+    --card: 220 20% 11%;
+    --card-foreground: 210 20% 98%;
+
+    --popover: 220 20% 11%;
+    --popover-foreground: 210 20% 98%;
+
+    --primary: 173 58% 45%;
+    --primary-foreground: 220 20% 8%;
+    --primary-hover: 173 58% 50%;
+
+    --secondary: 220 15% 18%;
+    --secondary-foreground: 210 20% 90%;
+
+    --muted: 220 15% 18%;
+    --muted-foreground: 210 10% 60%;
+
+    --accent: 173 40% 20%;
+    --accent-foreground: 173 58% 70%;
+
+    --destructive: 0 62% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 173 58% 45%;
+
+    --status-success: 142 71% 50%;
+    --status-success-bg: 142 40% 15%;
+    --status-success-foreground: 142 71% 70%;
+
+    --status-warning: 38 92% 55%;
+    --status-warning-bg: 38 40% 15%;
+    --status-warning-foreground: 38 92% 70%;
+
+    --status-danger: 0 72% 55%;
+    --status-danger-bg: 0 40% 15%;
+    --status-danger-foreground: 0 72% 70%;
+
+    --status-info: 210 100% 55%;
+    --status-info-bg: 210 40% 15%;
+    --status-info-foreground: 210 100% 70%;
+
+    --sidebar-background: 220 20% 10%;
+    --sidebar-foreground: 210 20% 90%;
+    --sidebar-primary: 173 58% 45%;
+    --sidebar-primary-foreground: 220 20% 8%;
+    --sidebar-accent: 173 40% 20%;
+    --sidebar-accent-foreground: 173 58% 70%;
+    --sidebar-border: 220 15% 18%;
+    --sidebar-ring: 173 58% 45%;
+
+    --gradient-primary: linear-gradient(135deg, hsl(173 58% 45%), hsl(180 50% 50%));
+    --gradient-hero: linear-gradient(180deg, hsl(220 20% 8%), hsl(220 20% 10%));
+    --gradient-card: linear-gradient(145deg, hsl(220 20% 12%), hsl(220 20% 10%));
+
+    --shadow-sm: 0 1px 2px 0 hsl(0 0% 0% / 0.2);
+    --shadow-md: 0 4px 6px -1px hsl(0 0% 0% / 0.25), 0 2px 4px -2px hsl(0 0% 0% / 0.15);
+    --shadow-lg: 0 10px 15px -3px hsl(0 0% 0% / 0.3), 0 4px 6px -4px hsl(0 0% 0% / 0.2);
+    --shadow-card: 0 1px 3px 0 hsl(0 0% 0% / 0.2), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display font-semibold tracking-tight;
+  }
+}
+
+@layer components {
+  .card-elevated {
+    @apply bg-card rounded-lg border border-border;
+    box-shadow: var(--shadow-card);
+  }
+
+  .card-interactive {
+    @apply card-elevated transition-all duration-200;
+  }
+
+  .card-interactive:hover {
+    box-shadow: var(--shadow-md);
+    @apply border-primary/20;
+  }
+
+  .btn-primary-gradient {
+    background: var(--gradient-primary);
+    @apply text-primary-foreground font-medium;
+  }
+
+  .page-container {
+    @apply px-4 py-6 sm:px-6 lg:px-8 mx-auto;
+  }
+
+  .section-title {
+    @apply text-lg font-semibold text-foreground mb-4;
+  }
+
+  .label-text {
+    @apply text-sm font-medium text-muted-foreground;
+  }
+
+  .skeleton-pulse {
+    @apply animate-pulse bg-muted rounded;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
