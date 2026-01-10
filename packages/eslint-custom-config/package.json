@@ -1,0 +1,54 @@
+{
+  "name": "@mediflow/eslint-custom-config",
+  "version": "0.0.0",
+  "main": "index.js",
+  "type": "module",
+  "license": "MIT",
+  "scripts": {
+    "clean-all": "rimraf node_modules"
+  },
+  "peerDependencies": {
+    "eslint": "^9.0.0",
+    "eslint-config-prettier": "^9.0.0",
+    "eslint-config-turbo": "^2.5.4",
+    "eslint-plugin-import": "^2.32.0",
+    "eslint-plugin-jsx-a11y": "^6.8.0",
+    "eslint-plugin-prettier": "^5.5.1",
+    "eslint-plugin-react": "^7.34.1",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.20",
+    "eslint-plugin-storybook": "^0.8.0",
+    "typescript": ">=5.0.0"
+  },
+  "peerDependenciesMeta": {
+    "eslint-plugin-react": {
+      "optional": true
+    },
+    "eslint-plugin-react-hooks": {
+      "optional": true
+    },
+    "eslint-plugin-jsx-a11y": {
+      "optional": true
+    },
+    "eslint-plugin-storybook": {
+      "optional": true
+    },
+    "eslint-plugin-import": {
+      "optional": true
+    },
+    "eslint-plugin-prettier": {
+      "optional": true
+    },
+    "eslint-plugin-react-refresh": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "typescript": "~5.8.3",
+    "typescript-eslint": "^8.35.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

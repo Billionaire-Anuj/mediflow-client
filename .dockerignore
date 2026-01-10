@@ -1,0 +1,9 @@
+# Dependencies and Build Outputs
+.env
+.git
+.turbo
+dist
+Dockerfile
+node_modules
+.dockerignore
+npm-debug.log

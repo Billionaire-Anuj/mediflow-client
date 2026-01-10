@@ -1,0 +1,81 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# Dependencies
+node_modules
+dist
+dist-ssr
+*.local
+.pnp
+.pnp.js
+
+# Code Editor or IDE Directories and Files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.idea/*
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing
+coverage
+
+# Build and Output
+dist/
+
+# Next.JS
+.next/
+out/
+build
+
+# Miscellenous
+*.pem
+
+# Local ENV Files
+!.env
+.env.development
+.env.staging
+.env.production
+
+# Docker Files
+!docker-compose.yml
+!docker-compose.example.yml
+docker-compose.Development.yml
+docker-compose.Sandbox.yml
+docker-compose.Staging.yml
+docker-compose.Production.yml
+
+# Turbo Files
+.turbo
+
+# TSC
+tsconfig.tsbuildinfo
+
+# Vercel
+.vercel
+
+# Storybook
+storybook-static/
+apps/client/src/git.properties.json
+
+# Temporary Files
+temp/
+
+# Story Books and Logs
+*storybook.log
+
+# Allow this specific logs folder
+!apps/client/src/pages/user/logs/
+!apps/client/src/pages/user/logs/**
+
+nginx.conf

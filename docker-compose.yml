@@ -1,0 +1,32 @@
+name: mediflow
+services:
+    mediflow-client:
+        container_name: mediflow-client
+        image: affinity/mediflow-client
+        build:
+            context: .
+            dockerfile: Dockerfile
+        environment:
+            - NODE_ENV=production
+        ports:
+            - "0000:80"
+        networks:
+            - your_common_network
+        depends_on:
+            - image_name
+        volumes:
+            - volume_name:/path/in/container
+        dns:
+            - 0.0.0.0
+            - 0.0.0.0
+
+    image_name:
+        image: your_image_name
+
+networks:
+    your_common_network:
+        external: true
+
+volumes:
+    volume_name:
+        external: true

@@ -1,0 +1,24 @@
+{
+  "name": "@mediflow/mediflow-api",
+  "version": "1.0.0",
+  "description": "Mediflow: Generated API Endpoints and Services via OpenAPI",
+  "main": "dist/index.js",
+  "type": "module",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist .turbo tsconfig.tsbuildinfo",
+    "clean-all": "pnpm run clean && rimraf node_modules",
+    "test": "echo \"No tests available.\"",
+    "api-generation@mac": "./node_modules/.bin/openapi --input http://localhost:5075/swagger/v1/swagger.json --client axios --useOptions --output ./src",
+    "api-generation@windows": "powershell -File node_modules/.bin/openapi.ps1 --input http://localhost:5075/swagger/v1/swagger.json --client axios --useOptions --output ./src",
+    "api-generation@localhost": "powershell -ExecutionPolicy Bypass -File ./node_modules/.bin/openapi.ps1 --input http://localhost:5075/swagger/v1/swagger.json --client axios --useOptions --output ./src"
+  },
+  "devDependencies": {
+    "@mediflow/tsconfig": "workspace:^",
+    "axios": "1.12.0",
+    "form-data": "~4.0.3",
+    "openapi-typescript-codegen": "^0.29.0",
+    "typescript": "~5.8.3"
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "extends": "@mediflow/tsconfig/vite.json",
+  "include": ["src", "vite.config.ts"],
+  "references": [
+    {
+      "path": "../../packages/mediflow-api"
+    }
+  ],
+  "compilerOptions": {
+    "baseUrl": ".",
+    "moduleResolution": "Bundler",
+    "paths": {
+      "@/*": ["src/*"],
+      "src/*": ["./src/*"]
+    }
+  }
+}
