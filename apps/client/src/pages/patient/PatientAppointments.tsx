@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { AppointmentService, PatientService, type AppointmentDto } from "@mediflow/mediflow-api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppointmentService, DoctorService, PatientService, type AppointmentDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,13 +8,23 @@ import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Calendar, Clock } from "lucide-react";
 import { format, isPast } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
 import { Link } from "react-router-dom";
+import { toast } from "sonner";
 
 export default function PatientAppointments() {
+    const queryClient = useQueryClient();
     const [activeTab, setActiveTab] = useState("upcoming");
+    const [canceling, setCanceling] = useState<AppointmentDto | null>(null);
+    const [rescheduling, setRescheduling] = useState<AppointmentDto | null>(null);
+    const [cancellationReason, setCancellationReason] = useState("");
+    const [rescheduleDate, setRescheduleDate] = useState(format(new Date(), "yyyy-MM-dd"));
+    const [rescheduleTimeslot, setRescheduleTimeslot] = useState("");
 
     const { data: profileData } = useQuery({
         queryKey: ["patient-profile"],
@@ -57,6 +67,59 @@ export default function PatientAppointments() {
             )
         ];
     }, [appointments]);
+
+    const { data: timeslotsData } = useQuery({
+        queryKey: ["reschedule-timeslots", rescheduling?.doctor?.id, rescheduleDate],
+        enabled: !!rescheduling?.doctor?.id,
+        queryFn: async () =>
+            DoctorService.getDoctorTimeslots({
+                doctorId: rescheduling!.doctor!.id || "",
+                startDate: rescheduleDate,
+                endDate: rescheduleDate
+            })
+    });
+
+    const availableTimeslots = (timeslotsData?.result ?? []).filter((slot) => !slot.isBooked);
+
+    const cancelMutation = useMutation({
+        mutationFn: async (appointment: AppointmentDto) => {
+            return AppointmentService.cancelAppointment({
+                appointmentId: appointment.id || "",
+                requestBody: {
+                    appointmentId: appointment.id,
+                    cancellationReason: cancellationReason || undefined
+                }
+            });
+        },
+        onSuccess: () => {
+            toast.success("Appointment cancelled");
+            setCanceling(null);
+            setCancellationReason("");
+            queryClient.invalidateQueries({ queryKey: ["patient-appointments", patientId] });
+        },
+        onError: () => toast.error("Failed to cancel appointment")
+    });
+
+    const updateMutation = useMutation({
+        mutationFn: async (appointment: AppointmentDto) => {
+            return AppointmentService.updateAppointment({
+                appointmentId: appointment.id || "",
+                requestBody: {
+                    appointmentId: appointment.id,
+                    timeslotId: rescheduleTimeslot,
+                    notes: appointment.notes || undefined,
+                    symptoms: appointment.symptoms || undefined
+                }
+            });
+        },
+        onSuccess: () => {
+            toast.success("Appointment updated");
+            setRescheduling(null);
+            setRescheduleTimeslot("");
+            queryClient.invalidateQueries({ queryKey: ["patient-appointments", patientId] });
+        },
+        onError: () => toast.error("Failed to update appointment")
+    });
 
     if (isLoading) {
         return (
@@ -135,17 +198,35 @@ export default function PatientAppointments() {
                                                             </span>
                                                         )}
                                                     </div>
-                                                    {appointment.notes && (
-                                                        <p className="text-sm text-muted-foreground mt-1">
-                                                            {appointment.notes}
-                                                        </p>
-                                                    )}
                                                 </div>
                                             </div>
-                                            <StatusBadge variant={getStatusVariant(appointment.status || "scheduled")}
-                                            >
-                                                {appointment.status}
-                                            </StatusBadge>
+                                            <div className="flex items-center gap-2">
+                                                <StatusBadge variant={getStatusVariant(appointment.status || "scheduled")}>
+                                                    {appointment.status}
+                                                </StatusBadge>
+                                                {appointment.status === "Scheduled" && (
+                                                    <>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() => {
+                                                                setRescheduling(appointment);
+                                                                setRescheduleTimeslot("");
+                                                                setRescheduleDate(format(new Date(), "yyyy-MM-dd"));
+                                                            }}
+                                                        >
+                                                            Reschedule
+                                                        </Button>
+                                                        <Button
+                                                            size="sm"
+                                                            variant="destructive"
+                                                            onClick={() => setCanceling(appointment)}
+                                                        >
+                                                            Cancel
+                                                        </Button>
+                                                    </>
+                                                )}
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -185,8 +266,7 @@ export default function PatientAppointments() {
                                                     </p>
                                                 )}
                                             </div>
-                                            <StatusBadge variant={getStatusVariant(appointment.status || "completed")}
-                                            >
+                                            <StatusBadge variant={getStatusVariant(appointment.status || "completed")}>
                                                 {appointment.status}
                                             </StatusBadge>
                                         </div>
@@ -205,6 +285,87 @@ export default function PatientAppointments() {
                     </Button>
                 </div>
             )}
+
+            <Dialog open={!!canceling} onOpenChange={() => setCanceling(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Cancel Appointment</DialogTitle>
+                        <DialogDescription>
+                            Provide a reason for cancelling this appointment.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <Input
+                            placeholder="Cancellation reason"
+                            value={cancellationReason}
+                            onChange={(e) => setCancellationReason(e.target.value)}
+                        />
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setCanceling(null)}>
+                                Close
+                            </Button>
+                            <Button
+                                variant="destructive"
+                                onClick={() => canceling && cancelMutation.mutate(canceling)}
+                                disabled={cancelMutation.isPending}
+                            >
+                                {cancelMutation.isPending ? "Cancelling..." : "Confirm Cancel"}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
+
+            <Dialog open={!!rescheduling} onOpenChange={() => setRescheduling(null)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Reschedule Appointment</DialogTitle>
+                        <DialogDescription>Select a new date and time.</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <Label className="text-sm font-medium">Date</Label>
+                                <Input
+                                    type="date"
+                                    className="mt-1"
+                                    value={rescheduleDate}
+                                    onChange={(e) => setRescheduleDate(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <Label className="text-sm font-medium">Time</Label>
+                                <Select value={rescheduleTimeslot} onValueChange={setRescheduleTimeslot}>
+                                    <SelectTrigger className="mt-1">
+                                        <SelectValue placeholder="Select time" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-popover">
+                                        {availableTimeslots.map((slot) => {
+                                            const start = combineDateAndTime(slot.date, slot.startTime);
+                                            return (
+                                                <SelectItem key={slot.id} value={slot.id || ""}>
+                                                    {start ? format(start, "h:mm a") : slot.startTime}
+                                                </SelectItem>
+                                            );
+                                        })}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="outline" onClick={() => setRescheduling(null)}>
+                                Close
+                            </Button>
+                            <Button
+                                onClick={() => rescheduling && updateMutation.mutate(rescheduling)}
+                                disabled={!rescheduleTimeslot || updateMutation.isPending}
+                            >
+                                {updateMutation.isPending ? "Updating..." : "Update Appointment"}
+                            </Button>
+                        </div>
+                    </div>
+                </DialogContent>
+            </Dialog>
         </div>
     );
 }

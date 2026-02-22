@@ -63,7 +63,7 @@ const navigationByRole: Record<string, NavItem[]> = {
         { label: "Doctors", href: "/admin/doctors", icon: Stethoscope },
         { label: "Configuration", href: "/admin/config", icon: Settings },
         { label: "Reports", href: "/admin/reports", icon: BarChart3 },
-        { label: "Audit Logs", href: "/admin/audit-logs", icon: History }
+        { label: "Login Logs", href: "/admin/audit-logs", icon: History }
     ]
 };
 

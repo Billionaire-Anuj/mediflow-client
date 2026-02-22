@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
     AppointmentService,
+    DoctorRecommendationService,
     DoctorService,
     SpecializationService,
     type DoctorProfileDto
@@ -29,6 +30,10 @@ export default function PatientDoctors() {
     const [selectedDate, setSelectedDate] = useState<string>(format(new Date(), "yyyy-MM-dd"));
     const [selectedTimeslotId, setSelectedTimeslotId] = useState<string>("");
     const [reason, setReason] = useState("");
+    const [recommendationQuery, setRecommendationQuery] = useState("");
+    const [recommendationCity, setRecommendationCity] = useState("");
+    const [recommendationInput, setRecommendationInput] = useState("");
+    const [recommendationCityInput, setRecommendationCityInput] = useState("");
 
     const { data: doctorsData, isLoading: doctorsLoading } = useQuery({
         queryKey: ["doctors"],
@@ -77,6 +82,20 @@ export default function PatientDoctors() {
 
     const availableTimeslots = (timeslotsData?.result ?? []).filter((slot) => !slot.isBooked);
 
+    const { data: recommendationData, isFetching: recommendationLoading } = useQuery({
+        queryKey: ["doctor-recommendations", recommendationQuery, recommendationCity],
+        enabled: recommendationQuery.trim().length > 0,
+        queryFn: async () =>
+            DoctorRecommendationService.getDoctorRecommendations({
+                query: recommendationQuery,
+                city: recommendationCity || undefined,
+                limit: 5
+            })
+    });
+
+    const recommendedDoctors = recommendationData?.result?.doctors ?? [];
+    const recommendedFallback = recommendationData?.result?.datasetFallback ?? [];
+
     const bookMutation = useMutation({
         mutationFn: async () => {
             if (!bookingDoctor?.id || !selectedTimeslotId) {
@@ -115,6 +134,108 @@ export default function PatientDoctors() {
     return (
         <div className="space-y-6 animate-fade-in">
             <PageHeader title="Find Doctors" description="Search and book appointments with our specialists" />
+
+            <Card>
+                <CardContent className="p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <div>
+                            <h3 className="font-semibold text-foreground">Doctor Recommendations</h3>
+                            <p className="text-sm text-muted-foreground">
+                                Describe symptoms or a specialization to get recommendations.
+                            </p>
+                        </div>
+                        <Button
+                            onClick={() => {
+                                if (!recommendationInput.trim()) {
+                                    toast.error("Please enter symptoms or a specialization");
+                                    return;
+                                }
+                                setRecommendationQuery(recommendationInput.trim());
+                                setRecommendationCity(recommendationCityInput.trim());
+                            }}
+                            disabled={recommendationLoading}
+                        >
+                            {recommendationLoading ? "Loading..." : "Recommend"}
+                        </Button>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2">
+                        <div>
+                            <label className="text-sm font-medium">Query</label>
+                            <Input
+                                className="mt-1"
+                                placeholder="e.g., chest pain, cardiology"
+                                value={recommendationInput}
+                                onChange={(e) => setRecommendationInput(e.target.value)}
+                            />
+                        </div>
+                        <div>
+                            <label className="text-sm font-medium">City (optional)</label>
+                            <Input
+                                className="mt-1"
+                                placeholder="e.g., New York"
+                                value={recommendationCityInput}
+                                onChange={(e) => setRecommendationCityInput(e.target.value)}
+                            />
+                        </div>
+                    </div>
+
+                    {recommendationQuery && (
+                        <div className="space-y-3">
+                            {recommendationData?.result?.recommendedSpecialization && (
+                                <p className="text-sm text-muted-foreground">
+                                    Recommended specialization:{" "}
+                                    <span className="font-medium text-foreground">
+                                        {recommendationData.result.recommendedSpecialization}
+                                    </span>
+                                </p>
+                            )}
+
+                            {recommendedDoctors.length > 0 ? (
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    {recommendedDoctors.map((doctor) => (
+                                        <Card key={doctor.id} className="card-interactive">
+                                            <CardContent className="p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div>
+                                                        <p className="font-medium">{doctor.name}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {(doctor.specializations || [])
+                                                                .map((spec) => spec.title)
+                                                                .filter(Boolean)
+                                                                .join(", ") || "General Practitioner"}
+                                                        </p>
+                                                    </div>
+                                                    {doctor.id && (
+                                                        <Button size="sm" onClick={() => setBookingDoctor(doctor)}>
+                                                            Book
+                                                        </Button>
+                                                    )}
+                                                </div>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            ) : recommendedFallback.length > 0 ? (
+                                <div className="grid gap-3 md:grid-cols-2">
+                                    {recommendedFallback.map((doc, idx) => (
+                                        <Card key={`${doc.name}-${idx}`} className="card-interactive">
+                                            <CardContent className="p-4">
+                                                <p className="font-medium">{doc.name}</p>
+                                                <p className="text-xs text-muted-foreground">{doc.category}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {doc.city} {doc.address ? `• ${doc.address}` : ""}
+                                                </p>
+                                            </CardContent>
+                                        </Card>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-muted-foreground">No recommendations yet.</p>
+                            )}
+                        </div>
+                    )}
+                </CardContent>
+            </Card>
 
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
