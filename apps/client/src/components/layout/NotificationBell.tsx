@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,23 +10,21 @@ import {
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useAuth } from "@/contexts/AuthContext";
-import { mockNotifications, Notification } from "@/mock/notifications";
 import { cn } from "@/lib/utils";
 import { formatDistanceToNow } from "date-fns";
 
 export function NotificationBell() {
-    const { user } = useAuth();
-    const [notifications, setNotifications] = useState<Notification[]>([]);
+    const [notifications, setNotifications] = useState<
+        {
+            id: string;
+            title: string;
+            message: string;
+            createdAt: string;
+            read: boolean;
+            type: "appointment" | "prescription" | "lab" | "system" | "message";
+        }[]
+    >([]);
     const [unreadCount, setUnreadCount] = useState(0);
-
-    useEffect(() => {
-        if (user) {
-            const userNotifications = mockNotifications.filter((n) => n.userId === user.id);
-            setNotifications(userNotifications);
-            setUnreadCount(userNotifications.filter((n) => !n.read).length);
-        }
-    }, [user]);
 
     const markAsRead = (notifId: string) => {
         setNotifications((prev) => prev.map((n) => (n.id === notifId ? { ...n, read: true } : n)));
@@ -38,8 +36,10 @@ export function NotificationBell() {
         setUnreadCount(0);
     };
 
-    const getNotificationIcon = (type: Notification["type"]) => {
-        const icons: Record<Notification["type"], string> = {
+    const getNotificationIcon = (
+        type: "appointment" | "prescription" | "lab" | "system" | "message"
+    ) => {
+        const icons: Record<"appointment" | "prescription" | "lab" | "system" | "message", string> = {
             appointment: "📅",
             prescription: "💊",
             lab: "🧪",
@@ -92,11 +92,11 @@ export function NotificationBell() {
                                         <p className="text-xs text-muted-foreground line-clamp-2">
                                             {notification.message}
                                         </p>
-                                        <p className="text-xs text-muted-foreground mt-1">
-                                            {formatDistanceToNow(new Date(notification.createdAt), {
-                                                addSuffix: true
-                                            })}
-                                        </p>
+                                    <p className="text-xs text-muted-foreground mt-1">
+                                        {formatDistanceToNow(new Date(notification.createdAt), {
+                                            addSuffix: true
+                                        })}
+                                    </p>
                                     </div>
                                     {!notification.read && (
                                         <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />

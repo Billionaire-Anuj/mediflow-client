@@ -2,6 +2,8 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import { QueryCache, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ApiError } from "@mediflow/mediflow-api";
+import "@/lib/api";
 
 // Import of Internal CSS & Styling Configurations
 import "./styles/app.css";
@@ -54,9 +56,8 @@ import { AppShell } from "@/components/layout/AppShell";
 const queryClient = new QueryClient({
     queryCache: new QueryCache({
         onError: (err) => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((err as any).statusCode === 401) {
-                window.location.href = "/authentication/login";
+            if (err instanceof ApiError && err.status === 401) {
+                window.location.href = "/login";
             }
         }
     })
@@ -125,6 +126,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route path="config" element={<AdminConfig />} />
                                 <Route path="reports" element={<AdminReports />} />
                                 <Route path="audit-logs" element={<AdminAuditLogs />} />
+                                <Route path="profile" element={<PatientProfile />} />
                             </Route>
 
                             {/* Catch-all */}

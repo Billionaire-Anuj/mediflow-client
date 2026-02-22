@@ -36,10 +36,10 @@ export function StatusBadge({ className, variant, children, ...props }: StatusBa
 export function getStatusVariant(status: string): StatusBadgeProps["variant"] {
     const statusMap: Record<string, StatusBadgeProps["variant"]> = {
         // Appointments
-        booked: "info",
+        scheduled: "info",
         completed: "success",
+        canceled: "danger",
         cancelled: "danger",
-        "no-show": "danger",
 
         // Prescriptions
         created: "info",
@@ -48,11 +48,15 @@ export function getStatusVariant(status: string): StatusBadgeProps["variant"] {
         dispensed: "success",
 
         // Lab
-        requested: "info",
-        "in-progress": "warning",
+        appointed: "info",
+        collected: "warning",
+        resulted: "success",
+        scheduled: "info",
+        cancelled: "danger",
 
         // Users
         active: "success",
+        inactive: "neutral",
         suspended: "danger",
 
         // Priority

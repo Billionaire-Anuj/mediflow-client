@@ -1,42 +1,49 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AppointmentService, UserService } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
-import { mockUsers } from "@/mock/users";
-import { mockDashboardStats } from "@/mock/config";
-import { Users, Calendar, Pill, UserCheck, UserX } from "lucide-react";
-import { toast } from "sonner";
+import { Users, Calendar, Pill } from "lucide-react";
+import { isSameDay } from "date-fns";
+import { combineDateAndTime } from "@/lib/datetime";
 
 export default function AdminDashboard() {
-    const [loading, setLoading] = useState(true);
-    const [users, setUsers] = useState(mockUsers);
-    const stats = mockDashboardStats.admin;
+    const { data: usersData, isLoading: usersLoading } = useQuery({
+        queryKey: ["admin-users"],
+        queryFn: async () => UserService.getAllUsersList({})
+    });
 
-    useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 400);
-        return () => clearTimeout(timer);
-    }, []);
+    const { data: appointmentsData, isLoading: appointmentsLoading } = useQuery({
+        queryKey: ["admin-appointments"],
+        queryFn: async () => AppointmentService.getAllAppointmentsList({})
+    });
 
-    const approveUser = (id: string) => {
-        setUsers((prev) => prev.map((u) => (u.id === id ? { ...u, status: "active" as const } : u)));
-        toast.success("User approved");
-    };
+    const users = usersData?.result ?? [];
+    const appointments = appointmentsData?.result ?? [];
 
-    const rejectUser = (id: string) => {
-        setUsers((prev) => prev.filter((u) => u.id !== id));
-        toast.success("User rejected");
-    };
+    const stats = useMemo(() => {
+        const appointmentsToday = appointments.filter((apt) => {
+            const start = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime);
+            return start ? isSameDay(start, new Date()) : false;
+        }).length;
+        const prescriptionsThisWeek = appointments.reduce((count, apt) => count + (apt.medications?.length || 0), 0);
+        const activeUsers = users.filter((u) => u.isActive).length;
+        return {
+            appointmentsToday,
+            prescriptionsThisWeek,
+            activeUsers
+        };
+    }, [appointments, users]);
 
-    if (loading)
+    if (usersLoading || appointmentsLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Admin Dashboard" />
                 <ListSkeleton items={4} />
             </div>
         );
-
-    const pendingUsers = users.filter((u) => u.status === "pending");
+    }
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -56,23 +63,12 @@ export default function AdminDashboard() {
                 </Card>
                 <Card>
                     <CardContent className="p-6 flex items-center gap-4">
-                        <div className="h-12 w-12 rounded-xl bg-status-danger-bg flex items-center justify-center">
-                            <span className="text-lg font-bold text-status-danger">{stats.cancellationRate}%</span>
-                        </div>
-                        <div>
-                            <p className="text-2xl font-bold">{stats.cancellationRate}%</p>
-                            <p className="text-sm text-muted-foreground">Cancellation Rate</p>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardContent className="p-6 flex items-center gap-4">
                         <div className="h-12 w-12 rounded-xl bg-status-success-bg flex items-center justify-center">
                             <Pill className="h-6 w-6 text-status-success" />
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{stats.prescriptionsThisWeek}</p>
-                            <p className="text-sm text-muted-foreground">Prescriptions/Week</p>
+                            <p className="text-sm text-muted-foreground">Prescriptions</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -88,40 +84,6 @@ export default function AdminDashboard() {
                     </CardContent>
                 </Card>
             </div>
-
-            <Card>
-                <CardContent className="p-6">
-                    <h3 className="font-semibold mb-4">Pending Approvals ({pendingUsers.length})</h3>
-                    <div className="space-y-3">
-                        {pendingUsers.map((user) => (
-                            <div
-                                key={user.id}
-                                className="flex items-center justify-between p-4 bg-accent/50 rounded-lg"
-                            >
-                                <div>
-                                    <p className="font-medium">{user.name}</p>
-                                    <p className="text-sm text-muted-foreground capitalize">
-                                        {user.role} • {user.department}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">{user.email}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <Button size="sm" variant="outline" onClick={() => rejectUser(user.id)}>
-                                        <UserX className="h-4 w-4" />
-                                    </Button>
-                                    <Button size="sm" onClick={() => approveUser(user.id)}>
-                                        <UserCheck className="h-4 w-4 mr-1" />
-                                        Approve
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                        {pendingUsers.length === 0 && (
-                            <p className="text-center text-muted-foreground py-4">No pending approvals</p>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
         </div>
     );
 }

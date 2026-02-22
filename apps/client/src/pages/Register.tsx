@@ -3,31 +3,68 @@ import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { RoleService, UserService, Gender } from "@mediflow/mediflow-api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { departments } from "@/mock/doctors";
 import { Loader2, Upload } from "lucide-react";
 
 const registerSchema = z.object({
-    role: z.enum(["doctor", "pharmacist", "lab"]),
+    roleId: z.string().min(1, "Please select a role"),
     fullName: z.string().min(2, "Full name is required"),
     email: z.string().email("Please enter a valid email"),
-    licenseNumber: z.string().min(3, "License/Specification number is required"),
-    education: z.string().min(2, "Education is required"),
-    department: z.string().min(1, "Please select a department"),
-    experience: z.string().optional()
+    username: z.string().min(3, "Username is required"),
+    password: z.string().min(6, "Password must be at least 6 characters"),
+    phone: z.string().optional(),
+    address: z.string().optional(),
+    gender: z.enum([Gender.MALE, Gender.FEMALE]).optional()
 });
 
 type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function Register() {
     const navigate = useNavigate();
-    const [isLoading, setIsLoading] = useState(false);
-    const [resumeFile, setResumeFile] = useState<File | null>(null);
+    const [profileImage, setProfileImage] = useState<File | null>(null);
+
+    const { data: rolesData } = useQuery({
+        queryKey: ["registerable-roles"],
+        queryFn: async () => RoleService.getAllAvailableRolesList({})
+    });
+
+    const roles = rolesData?.result ?? [];
+
+    const mutation = useMutation({
+        mutationFn: async (data: RegisterForm) => {
+            return UserService.registerUser({
+                formData: {
+                    Password: data.password,
+                    RoleId: data.roleId,
+                    Gender: data.gender,
+                    Name: data.fullName,
+                    Username: data.username,
+                    EmailAddress: data.email,
+                    Address: data.address,
+                    PhoneNumber: data.phone,
+                    ProfileImage: profileImage || undefined
+                }
+            });
+        },
+        onSuccess: () => {
+            toast.success("Registration submitted", {
+                description: "You will receive an email once your application is reviewed."
+            });
+            navigate("/login");
+        },
+        onError: () => {
+            toast.error("Registration failed", {
+                description: "Please verify your details and try again."
+            });
+        }
+    });
 
     const {
         register,
@@ -36,32 +73,15 @@ export default function Register() {
         watch,
         formState: { errors }
     } = useForm<RegisterForm>({
-        resolver: zodResolver(registerSchema),
-        defaultValues: {
-            role: "doctor"
-        }
+        resolver: zodResolver(registerSchema)
     });
 
-    const selectedRole = watch("role");
-
-    const onSubmit = async (data: RegisterForm) => {
-        setIsLoading(true);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-
-        console.log("Registration data:", data, resumeFile);
-
-        toast.success("Registration request submitted!", {
-            description: "You will receive an email once your application is reviewed."
-        });
-
-        setIsLoading(false);
-        navigate("/login");
+    const onSubmit = (data: RegisterForm) => {
+        mutation.mutate(data);
     };
 
     return (
         <div className="min-h-screen bg-background flex">
-            {/* Left Panel - Branding */}
             <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-accent to-background p-12 flex-col justify-between">
                 <Link to="/" className="flex items-center gap-2">
                     <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
@@ -80,7 +100,6 @@ export default function Register() {
                 <p className="text-sm text-muted-foreground">© 2026 Mediflow Health Center</p>
             </div>
 
-            {/* Right Panel - Registration Form */}
             <div className="flex-1 flex items-center justify-center p-6 lg:p-12 overflow-auto">
                 <div className="w-full max-w-md">
                     <div className="lg:hidden mb-8">
@@ -101,19 +120,21 @@ export default function Register() {
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
                                 <div className="space-y-2">
                                     <Label>Role</Label>
-                                    <Select
-                                        value={selectedRole}
-                                        onValueChange={(value) => setValue("role", value as RegisterForm["role"])}
-                                    >
-                                        <SelectTrigger>
+                                    <Select onValueChange={(value) => setValue("roleId", value)}>
+                                        <SelectTrigger className={errors.roleId ? "border-destructive" : ""}>
                                             <SelectValue placeholder="Select your role" />
                                         </SelectTrigger>
                                         <SelectContent className="bg-popover">
-                                            <SelectItem value="doctor">Doctor</SelectItem>
-                                            <SelectItem value="pharmacist">Pharmacist</SelectItem>
-                                            <SelectItem value="lab">Lab Technician</SelectItem>
+                                            {roles.map((role) => (
+                                                <SelectItem key={role.id} value={role.id || ""}>
+                                                    {role.name}
+                                                </SelectItem>
+                                            ))}
                                         </SelectContent>
                                     </Select>
+                                    {errors.roleId && (
+                                        <p className="text-xs text-destructive">{errors.roleId.message}</p>
+                                    )}
                                 </div>
 
                                 <div className="space-y-2">
@@ -142,80 +163,80 @@ export default function Register() {
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="licenseNumber">License / Specification Number</Label>
+                                    <Label htmlFor="username">Username</Label>
                                     <Input
-                                        id="licenseNumber"
-                                        placeholder="Enter your license number"
-                                        {...register("licenseNumber")}
-                                        className={errors.licenseNumber ? "border-destructive" : ""}
+                                        id="username"
+                                        placeholder="Choose a username"
+                                        {...register("username")}
+                                        className={errors.username ? "border-destructive" : ""}
                                     />
-                                    {errors.licenseNumber && (
-                                        <p className="text-xs text-destructive">{errors.licenseNumber.message}</p>
+                                    {errors.username && (
+                                        <p className="text-xs text-destructive">{errors.username.message}</p>
                                     )}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label htmlFor="education">Education</Label>
+                                    <Label htmlFor="password">Password</Label>
                                     <Input
-                                        id="education"
-                                        placeholder="e.g., MD, Harvard Medical School"
-                                        {...register("education")}
-                                        className={errors.education ? "border-destructive" : ""}
+                                        id="password"
+                                        type="password"
+                                        placeholder="Create a password"
+                                        {...register("password")}
+                                        className={errors.password ? "border-destructive" : ""}
                                     />
-                                    {errors.education && (
-                                        <p className="text-xs text-destructive">{errors.education.message}</p>
+                                    {errors.password && (
+                                        <p className="text-xs text-destructive">{errors.password.message}</p>
                                     )}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label>Department / Specialty</Label>
-                                    <Select onValueChange={(value) => setValue("department", value)}>
-                                        <SelectTrigger className={errors.department ? "border-destructive" : ""}>
-                                            <SelectValue placeholder="Select department" />
+                                    <Label>Gender</Label>
+                                    <Select onValueChange={(value) => setValue("gender", value as Gender)}>
+                                        <SelectTrigger>
+                                            <SelectValue placeholder="Select gender" />
                                         </SelectTrigger>
                                         <SelectContent className="bg-popover">
-                                            {departments.map((dept) => (
-                                                <SelectItem key={dept} value={dept}>
-                                                    {dept}
-                                                </SelectItem>
-                                            ))}
+                                            <SelectItem value={Gender.MALE}>Male</SelectItem>
+                                            <SelectItem value={Gender.FEMALE}>Female</SelectItem>
                                         </SelectContent>
                                     </Select>
-                                    {errors.department && (
-                                        <p className="text-xs text-destructive">{errors.department.message}</p>
-                                    )}
                                 </div>
 
                                 <div className="space-y-2">
-                                    <Label>Resume / Documents</Label>
+                                    <Label htmlFor="phone">Phone</Label>
+                                    <Input id="phone" placeholder="Phone number" {...register("phone")} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label htmlFor="address">Address</Label>
+                                    <Input id="address" placeholder="Address" {...register("address")} />
+                                </div>
+
+                                <div className="space-y-2">
+                                    <Label>Profile Image</Label>
                                     <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
                                         <input
                                             type="file"
-                                            id="resume"
+                                            id="profileImage"
                                             className="hidden"
-                                            accept=".pdf,.doc,.docx"
-                                            onChange={(e) => setResumeFile(e.target.files?.[0] || null)}
+                                            accept=".jpg,.jpeg,.png"
+                                            onChange={(e) => setProfileImage(e.target.files?.[0] || null)}
                                         />
-                                        <label htmlFor="resume" className="cursor-pointer">
+                                        <label htmlFor="profileImage" className="cursor-pointer">
                                             <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                                            {resumeFile ? (
-                                                <p className="text-sm text-foreground font-medium">{resumeFile.name}</p>
+                                            {profileImage ? (
+                                                <p className="text-sm text-foreground font-medium">{profileImage.name}</p>
                                             ) : (
-                                                <>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        Click to upload your resume/documents
-                                                    </p>
-                                                    <p className="text-xs text-muted-foreground mt-1">
-                                                        PDF, DOC up to 10MB
-                                                    </p>
-                                                </>
+                                                <p className="text-sm text-muted-foreground">
+                                                    Click to upload a profile image
+                                                </p>
                                             )}
                                         </label>
                                     </div>
                                 </div>
 
-                                <Button type="submit" className="w-full" disabled={isLoading}>
-                                    {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                <Button type="submit" className="w-full" disabled={mutation.isPending}>
+                                    {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     Request Registration
                                 </Button>
 

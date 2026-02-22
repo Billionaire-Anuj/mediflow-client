@@ -3,15 +3,19 @@ import { Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Topbar } from "./Topbar";
 import { Sidebar } from "./Sidebar";
-import { UserRole } from "@/mock/users";
+import { AppRole } from "@/lib/auth";
 
 interface AppShellProps {
-    allowedRoles?: UserRole[];
+    allowedRoles?: AppRole[];
 }
 
 export function AppShell({ allowedRoles }: AppShellProps) {
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, isInitializing } = useAuth();
     const [sidebarOpen, setSidebarOpen] = useState(false);
+
+    if (isInitializing) {
+        return null;
+    }
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;

@@ -1,103 +1,64 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AppointmentService, PatientService, type AppointmentDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Textarea } from "@/components/ui/textarea";
-import { mockAppointments, Appointment } from "@/mock/appointments";
-import { Calendar, Clock, User, X } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Calendar, Clock } from "lucide-react";
 import { format, isPast } from "date-fns";
-import { toast } from "sonner";
+import { combineDateAndTime } from "@/lib/datetime";
+import { Link } from "react-router-dom";
 
 export default function PatientAppointments() {
-    const [loading, setLoading] = useState(true);
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
-    const [selectedAppointment, setSelectedAppointment] = useState<Appointment | null>(null);
-    const [cancelAppointment, setCancelAppointment] = useState<Appointment | null>(null);
-    const [cancelReason, setCancelReason] = useState("");
+    const [activeTab, setActiveTab] = useState("upcoming");
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const patientAppointments = mockAppointments.filter((a) => a.patientId === "patient-1");
-            setAppointments(patientAppointments);
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, []);
+    const { data: profileData } = useQuery({
+        queryKey: ["patient-profile"],
+        queryFn: async () => PatientService.getPatientProfile()
+    });
 
-    const upcomingAppointments = appointments.filter((a) => a.status === "booked" && !isPast(new Date(a.dateTime)));
-    const pastAppointments = appointments.filter((a) => a.status !== "booked" || isPast(new Date(a.dateTime)));
+    const patientId = profileData?.result?.id;
 
-    const handleCancelAppointment = () => {
-        if (!cancelAppointment) return;
+    const { data: appointmentsData, isLoading } = useQuery({
+        queryKey: ["patient-appointments", patientId],
+        enabled: !!patientId,
+        queryFn: async () => AppointmentService.getAllAppointmentsList({ patientId })
+    });
 
-        setAppointments((prev) =>
-            prev.map((a) =>
-                a.id === cancelAppointment.id
-                    ? { ...a, status: "cancelled" as const, cancellationReason: cancelReason }
-                    : a
-            )
-        );
+    const appointments = appointmentsData?.result ?? [];
 
-        toast.success("Appointment cancelled", {
-            description: "Your appointment has been cancelled successfully."
+    const [upcomingAppointments, pastAppointments] = useMemo(() => {
+        const upcoming: AppointmentDto[] = [];
+        const past: AppointmentDto[] = [];
+
+        appointments.forEach((apt) => {
+            const start = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime);
+            if (start && isPast(start)) {
+                past.push(apt);
+            } else {
+                upcoming.push(apt);
+            }
         });
 
-        setCancelAppointment(null);
-        setCancelReason("");
-    };
+        return [
+            upcoming.sort(
+                (a, b) =>
+                    (combineDateAndTime(a.timeslot?.date, a.timeslot?.startTime)?.getTime() || 0) -
+                    (combineDateAndTime(b.timeslot?.date, b.timeslot?.startTime)?.getTime() || 0)
+            ),
+            past.sort(
+                (a, b) =>
+                    (combineDateAndTime(b.timeslot?.date, b.timeslot?.startTime)?.getTime() || 0) -
+                    (combineDateAndTime(a.timeslot?.date, a.timeslot?.startTime)?.getTime() || 0)
+            )
+        ];
+    }, [appointments]);
 
-    const AppointmentCard = ({ appointment }: { appointment: Appointment }) => (
-        <Card className="card-interactive">
-            <CardContent className="p-4">
-                <div className="flex items-start justify-between gap-4">
-                    <div className="flex gap-4">
-                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <User className="h-6 w-6 text-primary" />
-                        </div>
-                        <div>
-                            <h3 className="font-medium">{appointment.doctorName}</h3>
-                            <p className="text-sm text-muted-foreground">{appointment.department}</p>
-                            <div className="flex items-center gap-4 mt-2 text-sm text-muted-foreground">
-                                <span className="flex items-center gap-1">
-                                    <Calendar className="h-4 w-4" />
-                                    {format(new Date(appointment.dateTime), "MMM d, yyyy")}
-                                </span>
-                                <span className="flex items-center gap-1">
-                                    <Clock className="h-4 w-4" />
-                                    {format(new Date(appointment.dateTime), "h:mm a")}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex flex-col items-end gap-2">
-                        <StatusBadge variant={getStatusVariant(appointment.status)}>{appointment.status}</StatusBadge>
-                        <div className="flex gap-2">
-                            <Button variant="outline" size="sm" onClick={() => setSelectedAppointment(appointment)}>
-                                Details
-                            </Button>
-                            {appointment.status === "booked" && !isPast(new Date(appointment.dateTime)) && (
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-destructive hover:text-destructive"
-                                    onClick={() => setCancelAppointment(appointment)}
-                                >
-                                    <X className="h-4 w-4" />
-                                </Button>
-                            )}
-                        </div>
-                    </div>
-                </div>
-            </CardContent>
-        </Card>
-    );
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Appointments" description="Manage your upcoming and past appointments" />
@@ -110,7 +71,7 @@ export default function PatientAppointments() {
         <div className="space-y-6 animate-fade-in">
             <PageHeader title="Appointments" description="Manage your upcoming and past appointments" />
 
-            <Tabs defaultValue="upcoming" className="space-y-4">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="upcoming">Upcoming ({upcomingAppointments.length})</TabsTrigger>
                     <TabsTrigger value="past">Past ({pastAppointments.length})</TabsTrigger>
@@ -123,13 +84,73 @@ export default function PatientAppointments() {
                             title="No upcoming appointments"
                             description="Book an appointment with one of our doctors"
                             action={
-                                <Button asChild>
-                                    <a href="/patient/doctors">Find Doctors</a>
+                                <Button asChild variant="outline">
+                                    <Link to="/patient/doctors">Find Doctors</Link>
                                 </Button>
                             }
                         />
                     ) : (
-                        upcomingAppointments.map((apt) => <AppointmentCard key={apt.id} appointment={apt} />)
+                        upcomingAppointments.map((appointment) => {
+                            const start = combineDateAndTime(
+                                appointment.timeslot?.date,
+                                appointment.timeslot?.startTime
+                            );
+                            const end = combineDateAndTime(
+                                appointment.timeslot?.date,
+                                appointment.timeslot?.endTime
+                            );
+                            return (
+                                <Card key={appointment.id} className="card-interactive">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div className="flex gap-4">
+                                                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                    <span className="font-medium text-primary">
+                                                        {appointment.doctor?.name
+                                                            ?.split(" ")
+                                                            .map((n) => n[0])
+                                                            .join("") || "D"}
+                                                    </span>
+                                                </div>
+                                                <div>
+                                                    <h3 className="font-medium">{appointment.doctor?.name}</h3>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {(appointment.doctor?.specializations || [])
+                                                            .map((spec) => spec.title)
+                                                            .filter(Boolean)
+                                                            .join(", ") || "General Practitioner"}
+                                                    </p>
+                                                    <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                                                        {start && (
+                                                            <span className="flex items-center gap-1">
+                                                                <Calendar className="h-3 w-3" />
+                                                                {format(start, "MMM d, yyyy")}
+                                                            </span>
+                                                        )}
+                                                        {start && (
+                                                            <span className="flex items-center gap-1">
+                                                                <Clock className="h-3 w-3" />
+                                                                {format(start, "h:mm a")}
+                                                                {end ? ` - ${format(end, "h:mm a")}` : ""}
+                                                            </span>
+                                                        )}
+                                                    </div>
+                                                    {appointment.notes && (
+                                                        <p className="text-sm text-muted-foreground mt-1">
+                                                            {appointment.notes}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+                                            <StatusBadge variant={getStatusVariant(appointment.status || "scheduled")}
+                                            >
+                                                {appointment.status}
+                                            </StatusBadge>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })
                     )}
                 </TabsContent>
 
@@ -138,115 +159,52 @@ export default function PatientAppointments() {
                         <EmptyState
                             icon={Calendar}
                             title="No past appointments"
-                            description="Your appointment history will appear here"
+                            description="Your completed appointments will appear here"
                         />
                     ) : (
-                        pastAppointments.map((apt) => <AppointmentCard key={apt.id} appointment={apt} />)
+                        pastAppointments.map((appointment) => {
+                            const start = combineDateAndTime(
+                                appointment.timeslot?.date,
+                                appointment.timeslot?.startTime
+                            );
+                            return (
+                                <Card key={appointment.id} className="card-interactive">
+                                    <CardContent className="p-4">
+                                        <div className="flex items-center justify-between">
+                                            <div>
+                                                <h3 className="font-medium">{appointment.doctor?.name}</h3>
+                                                <p className="text-sm text-muted-foreground">
+                                                    {(appointment.doctor?.specializations || [])
+                                                        .map((spec) => spec.title)
+                                                        .filter(Boolean)
+                                                        .join(", ") || "General Practitioner"}
+                                                </p>
+                                                {start && (
+                                                    <p className="text-xs text-muted-foreground mt-1">
+                                                        {format(start, "MMM d, yyyy")}
+                                                    </p>
+                                                )}
+                                            </div>
+                                            <StatusBadge variant={getStatusVariant(appointment.status || "completed")}
+                                            >
+                                                {appointment.status}
+                                            </StatusBadge>
+                                        </div>
+                                    </CardContent>
+                                </Card>
+                            );
+                        })
                     )}
                 </TabsContent>
             </Tabs>
 
-            {/* Appointment Details Dialog */}
-            <Dialog open={!!selectedAppointment} onOpenChange={() => setSelectedAppointment(null)}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Appointment Details</DialogTitle>
-                        <DialogDescription>
-                            {selectedAppointment && format(new Date(selectedAppointment.dateTime), "MMMM d, yyyy")}
-                        </DialogDescription>
-                    </DialogHeader>
-                    {selectedAppointment && (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <div className="flex items-center gap-3">
-                                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                        <User className="h-6 w-6 text-primary" />
-                                    </div>
-                                    <div>
-                                        <p className="font-medium">{selectedAppointment.doctorName}</p>
-                                        <p className="text-sm text-muted-foreground">
-                                            {selectedAppointment.department}
-                                        </p>
-                                    </div>
-                                </div>
-                                <StatusBadge variant={getStatusVariant(selectedAppointment.status)}>
-                                    {selectedAppointment.status}
-                                </StatusBadge>
-                            </div>
-
-                            <div className="grid grid-cols-2 gap-4 p-4 bg-accent/50 rounded-lg">
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Date</p>
-                                    <p className="font-medium">
-                                        {format(new Date(selectedAppointment.dateTime), "MMM d, yyyy")}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Time</p>
-                                    <p className="font-medium">
-                                        {format(new Date(selectedAppointment.dateTime), "h:mm a")}
-                                    </p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Duration</p>
-                                    <p className="font-medium">{selectedAppointment.duration} minutes</p>
-                                </div>
-                                <div>
-                                    <p className="text-sm text-muted-foreground">Type</p>
-                                    <p className="font-medium capitalize">{selectedAppointment.type}</p>
-                                </div>
-                            </div>
-
-                            {selectedAppointment.notes && (
-                                <div>
-                                    <p className="text-sm text-muted-foreground mb-1">Notes</p>
-                                    <p className="text-sm">{selectedAppointment.notes}</p>
-                                </div>
-                            )}
-
-                            {selectedAppointment.cancellationReason && (
-                                <div className="p-3 bg-destructive/10 rounded-lg">
-                                    <p className="text-sm font-medium text-destructive">Cancellation Reason</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {selectedAppointment.cancellationReason}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
-
-            {/* Cancel Confirmation Dialog */}
-            <Dialog open={!!cancelAppointment} onOpenChange={() => setCancelAppointment(null)}>
-                <DialogContent>
-                    <DialogHeader>
-                        <DialogTitle>Cancel Appointment</DialogTitle>
-                        <DialogDescription>
-                            Are you sure you want to cancel this appointment with {cancelAppointment?.doctorName}?
-                        </DialogDescription>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                        <div>
-                            <label className="text-sm font-medium">Reason for cancellation</label>
-                            <Textarea
-                                className="mt-1"
-                                placeholder="Please provide a reason..."
-                                value={cancelReason}
-                                onChange={(e) => setCancelReason(e.target.value)}
-                            />
-                        </div>
-                        <div className="flex justify-end gap-2">
-                            <Button variant="outline" onClick={() => setCancelAppointment(null)}>
-                                Keep Appointment
-                            </Button>
-                            <Button variant="destructive" onClick={handleCancelAppointment}>
-                                Cancel Appointment
-                            </Button>
-                        </div>
-                    </div>
-                </DialogContent>
-            </Dialog>
+            {appointments.length === 0 && (
+                <div className="flex justify-center">
+                    <Button asChild variant="outline">
+                        <Link to="/patient/doctors">Find a Doctor</Link>
+                    </Button>
+                </div>
+            )}
         </div>
     );
 }

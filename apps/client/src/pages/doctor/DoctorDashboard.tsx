@@ -1,33 +1,70 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { AppointmentService, DoctorService, type AppointmentDto } from "@mediflow/mediflow-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { mockAppointments } from "@/mock/appointments";
-import { mockDashboardStats } from "@/mock/config";
 import { Calendar, Users, FileText, Pill, Clock, ArrowRight, Play } from "lucide-react";
-import { format } from "date-fns";
+import { format, isSameDay, subDays, isAfter } from "date-fns";
+import { combineDateAndTime } from "@/lib/datetime";
 
 export default function DoctorDashboard() {
     const { user } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [todayAppointments, setTodayAppointments] = useState<typeof mockAppointments>([]);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const today = mockAppointments.filter((a) => a.doctorId === "doctor-1" && a.status === "booked");
-            setTodayAppointments(today);
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, []);
+    const { data: doctorProfile } = useQuery({
+        queryKey: ["doctor-profile"],
+        queryFn: async () => DoctorService.getDoctorProfile()
+    });
 
-    const stats = mockDashboardStats.doctor;
+    const doctorId = doctorProfile?.result?.id;
 
-    if (loading) {
+    const { data: appointmentsData, isLoading } = useQuery({
+        queryKey: ["doctor-appointments", doctorId],
+        enabled: !!doctorId,
+        queryFn: async () => AppointmentService.getAllAppointmentsList({ doctorId })
+    });
+
+    const appointments = appointmentsData?.result ?? [];
+
+    const todayAppointments = useMemo(() => {
+        return appointments.filter((apt) => {
+            const start = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime);
+            return start ? isSameDay(start, new Date()) : false;
+        });
+    }, [appointments]);
+
+    const stats = useMemo(() => {
+        const weekStart = subDays(new Date(), 7);
+        const patientsSeen = new Set<string>();
+        let pendingLabResults = 0;
+        let prescriptionsCreated = 0;
+
+        appointments.forEach((apt) => {
+            const start = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime);
+            if (start && isAfter(start, weekStart) && apt.patient?.id) {
+                patientsSeen.add(apt.patient.id);
+            }
+            (apt.diagnostics || []).forEach((diag) => {
+                if (diag.status && diag.status !== "Resulted") {
+                    pendingLabResults += 1;
+                }
+            });
+            prescriptionsCreated += (apt.medications || []).length;
+        });
+
+        return {
+            appointmentsToday: todayAppointments.length,
+            pendingLabResults,
+            prescriptionsCreated,
+            patientsSeenThisWeek: patientsSeen.size
+        };
+    }, [appointments, todayAppointments.length]);
+
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Dashboard" />
@@ -47,7 +84,6 @@ export default function DoctorDashboard() {
                 description="Here's your schedule for today"
             />
 
-            {/* Stats Cards */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Card>
                     <CardContent className="p-6">
@@ -106,7 +142,6 @@ export default function DoctorDashboard() {
                 </Card>
             </div>
 
-            {/* Today's Queue */}
             <Card>
                 <CardHeader className="flex flex-row items-center justify-between">
                     <CardTitle className="text-lg">Today's Queue</CardTitle>
@@ -121,36 +156,39 @@ export default function DoctorDashboard() {
                         <p className="text-center py-8 text-muted-foreground">No appointments scheduled for today</p>
                     ) : (
                         <div className="space-y-3">
-                            {todayAppointments.slice(0, 5).map((apt, index) => (
-                                <div
-                                    key={apt.id}
-                                    className="flex items-center justify-between p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors"
-                                >
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-medium text-sm">
-                                            {index + 1}
-                                        </div>
-                                        <div>
-                                            <p className="font-medium">{apt.patientName}</p>
-                                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                                                <Clock className="h-3 w-3" />
-                                                {format(new Date(apt.dateTime), "h:mm a")}
-                                                <span>•</span>
-                                                <span className="capitalize">{apt.type}</span>
+                            {todayAppointments.slice(0, 5).map((apt, index) => {
+                                const start = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime);
+                                return (
+                                    <div
+                                        key={apt.id}
+                                        className="flex items-center justify-between p-4 rounded-lg bg-accent/50 hover:bg-accent transition-colors"
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className="flex items-center justify-center h-8 w-8 rounded-full bg-primary/10 text-primary font-medium text-sm">
+                                                {index + 1}
+                                            </div>
+                                            <div>
+                                                <p className="font-medium">{apt.patient?.name}</p>
+                                                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                                                    <Clock className="h-3 w-3" />
+                                                    {start ? format(start, "h:mm a") : ""}
+                                                </div>
                                             </div>
                                         </div>
+                                        <div className="flex items-center gap-2">
+                                            <StatusBadge variant={getStatusVariant(apt.status || "scheduled")}>
+                                                {apt.status}
+                                            </StatusBadge>
+                                            <Button size="sm" asChild>
+                                                <Link to={`/doctor/encounter/${apt.id}`}>
+                                                    <Play className="h-4 w-4 mr-1" />
+                                                    Start
+                                                </Link>
+                                            </Button>
+                                        </div>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <StatusBadge variant={getStatusVariant(apt.status)}>{apt.status}</StatusBadge>
-                                        <Button size="sm" asChild>
-                                            <Link to={`/doctor/encounter/${apt.id}`}>
-                                                <Play className="h-4 w-4 mr-1" />
-                                                Start
-                                            </Link>
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     )}
                 </CardContent>

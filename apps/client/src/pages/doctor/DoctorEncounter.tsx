@@ -1,8 +1,16 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useMutation, useQuery } from "@tanstack/react-query";
+import {
+    AppointmentService,
+    DiagnosticTestService,
+    MedicineService,
+    type DiagnosticTestDto,
+    type MedicineDto
+} from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,25 +22,25 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { mockAppointments, Appointment } from "@/mock/appointments";
-import { availableLabTests } from "@/mock/labRequests";
 import { ArrowLeft, User, Pill, FlaskConical, Save, Plus, X, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { combineDateAndTime } from "@/lib/datetime";
 
 const encounterSchema = z.object({
     notes: z.string().min(10, "Notes must be at least 10 characters"),
     diagnosis: z.string().min(5, "Diagnosis is required"),
     treatmentPlan: z.string().min(10, "Treatment plan is required"),
-    followUp: z.string().optional()
+    prescriptions: z.string().optional()
 });
 
 type EncounterForm = z.infer<typeof encounterSchema>;
 
 interface MedicineItem {
     id: string;
+    medicineId: string;
     name: string;
-    dosage: string;
+    dose: string;
     frequency: string;
     duration: string;
     instructions: string;
@@ -40,10 +48,6 @@ interface MedicineItem {
 
 export default function DoctorEncounter() {
     const { appointmentId } = useParams<{ appointmentId: string }>();
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [appointment, setAppointment] = useState<Appointment | null>(null);
-
     const [prescriptionOpen, setPrescriptionOpen] = useState(false);
     const [labRequestOpen, setLabRequestOpen] = useState(false);
 
@@ -51,8 +55,29 @@ export default function DoctorEncounter() {
     const [newMedicine, setNewMedicine] = useState<Partial<MedicineItem>>({});
 
     const [selectedTests, setSelectedTests] = useState<string[]>([]);
-    const [labPriority, setLabPriority] = useState("routine");
     const [labNotes, setLabNotes] = useState("");
+
+    const { data: appointmentData, isLoading } = useQuery({
+        queryKey: ["appointment", appointmentId],
+        enabled: !!appointmentId,
+        queryFn: async () => AppointmentService.getAppointmentById({ appointmentId: appointmentId! })
+    });
+
+    const { data: testsData } = useQuery({
+        queryKey: ["diagnostic-tests"],
+        queryFn: async () => DiagnosticTestService.getAllDiagnosticTestsList({})
+    });
+
+    const { data: medicinesData } = useQuery({
+        queryKey: ["medicines"],
+        queryFn: async () => MedicineService.getAllMedicinesList({})
+    });
+
+    const tests = testsData?.result ?? [];
+    const medicineOptions = medicinesData?.result ?? [];
+
+    const appointment = appointmentData?.result || null;
+    const appointmentDate = combineDateAndTime(appointment?.timeslot?.date, appointment?.timeslot?.startTime);
 
     const {
         register,
@@ -62,31 +87,64 @@ export default function DoctorEncounter() {
         resolver: zodResolver(encounterSchema)
     });
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const apt = mockAppointments.find((a) => a.id === appointmentId);
-            setAppointment(apt || null);
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, [appointmentId]);
-
-    const onSubmitEncounter = async (data: EncounterForm) => {
-        setSaving(true);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        console.log("Encounter data:", data);
-        toast.success("Encounter saved successfully");
-        setSaving(false);
-    };
+    const consultMutation = useMutation({
+        mutationFn: async (data: EncounterForm) => {
+            if (!appointmentId) throw new Error("Missing appointment");
+            return AppointmentService.consultAppointment({
+                appointmentId,
+                requestBody: {
+                    appointmentId,
+                    diagnosis: data.diagnosis,
+                    treatment: data.treatmentPlan,
+                    notes: data.notes,
+                    prescriptions: data.prescriptions,
+                    diagnostics:
+                        selectedTests.length > 0
+                            ? [
+                                  {
+                                      notes: labNotes,
+                                      diagnosticTests: selectedTests.map((testId) => ({
+                                          diagnosticTestId: testId
+                                      }))
+                                  }
+                              ]
+                            : [],
+                    medications:
+                        medicines.length > 0
+                            ? [
+                                  {
+                                      notes: data.prescriptions || "",
+                                      drugs: medicines.map((med) => ({
+                                          medicineId: med.medicineId,
+                                          dose: med.dose,
+                                          frequency: med.frequency,
+                                          duration: med.duration,
+                                          instructions: med.instructions
+                                      }))
+                                  }
+                              ]
+                            : []
+                }
+            });
+        },
+        onSuccess: () => {
+            toast.success("Encounter saved successfully");
+        },
+        onError: () => {
+            toast.error("Failed to save encounter");
+        }
+    });
 
     const addMedicine = () => {
-        if (newMedicine.name && newMedicine.dosage) {
+        if (newMedicine.medicineId && newMedicine.dose) {
+            const selected = medicineOptions.find((m) => m.id === newMedicine.medicineId);
             setMedicines((prev) => [
                 ...prev,
                 {
                     id: Date.now().toString(),
-                    name: newMedicine.name || "",
-                    dosage: newMedicine.dosage || "",
+                    medicineId: newMedicine.medicineId || "",
+                    name: selected?.title || newMedicine.name || "Medicine",
+                    dose: newMedicine.dose || "",
                     frequency: newMedicine.frequency || "Once daily",
                     duration: newMedicine.duration || "7 days",
                     instructions: newMedicine.instructions || ""
@@ -100,28 +158,7 @@ export default function DoctorEncounter() {
         setMedicines((prev) => prev.filter((m) => m.id !== id));
     };
 
-    const savePrescription = () => {
-        if (medicines.length === 0) {
-            toast.error("Please add at least one medicine");
-            return;
-        }
-        console.log("Prescription:", medicines);
-        toast.success("Prescription created");
-        setPrescriptionOpen(false);
-    };
-
-    const saveLabRequest = () => {
-        if (selectedTests.length === 0) {
-            toast.error("Please select at least one test");
-            return;
-        }
-        console.log("Lab request:", { tests: selectedTests, priority: labPriority, notes: labNotes });
-        toast.success("Lab request created");
-        setLabRequestOpen(false);
-        setSelectedTests([]);
-    };
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Encounter" />
@@ -151,12 +188,11 @@ export default function DoctorEncounter() {
                 </Button>
                 <PageHeader
                     title="Patient Encounter"
-                    description={format(new Date(appointment.dateTime), "MMMM d, yyyy")}
+                    description={appointmentDate ? format(appointmentDate, "MMMM d, yyyy") : ""}
                 />
             </div>
 
             <div className="grid gap-6 lg:grid-cols-4">
-                {/* Left: Patient Summary */}
                 <Card className="lg:col-span-1">
                     <CardHeader>
                         <CardTitle className="text-base">Patient</CardTitle>
@@ -166,30 +202,18 @@ export default function DoctorEncounter() {
                             <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-3">
                                 <User className="h-8 w-8 text-primary" />
                             </div>
-                            <h3 className="font-semibold">{appointment.patientName}</h3>
-                            <p className="text-sm text-muted-foreground capitalize">{appointment.type}</p>
-                        </div>
-
-                        <div className="mt-6 space-y-3 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Allergies</span>
-                                <span>None known</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Blood Type</span>
-                                <span>O+</span>
-                            </div>
+                            <h3 className="font-semibold">{appointment.patient?.name}</h3>
+                            <p className="text-sm text-muted-foreground">{appointment.patient?.emailAddress}</p>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Center: Encounter Form */}
                 <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle className="text-base">Encounter Notes</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <form onSubmit={handleSubmit(onSubmitEncounter)} className="space-y-4">
+                        <form onSubmit={handleSubmit((data) => consultMutation.mutate(data))} className="space-y-4">
                             <div className="space-y-2">
                                 <Label htmlFor="notes">Clinical Notes *</Label>
                                 <Textarea
@@ -230,16 +254,16 @@ export default function DoctorEncounter() {
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="followUp">Follow-up</Label>
+                                <Label htmlFor="prescriptions">Prescriptions Summary</Label>
                                 <Input
-                                    id="followUp"
-                                    {...register("followUp")}
-                                    placeholder="e.g., Return in 2 weeks if symptoms persist"
+                                    id="prescriptions"
+                                    {...register("prescriptions")}
+                                    placeholder="e.g., Continue current medications"
                                 />
                             </div>
 
-                            <Button type="submit" className="w-full" disabled={saving}>
-                                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Button type="submit" className="w-full" disabled={consultMutation.isPending}>
+                                {consultMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                 <Save className="h-4 w-4 mr-2" />
                                 Save Encounter
                             </Button>
@@ -247,7 +271,6 @@ export default function DoctorEncounter() {
                     </CardContent>
                 </Card>
 
-                {/* Right: Actions Panel */}
                 <Card className="lg:col-span-1">
                     <CardHeader>
                         <CardTitle className="text-base">Actions</CardTitle>
@@ -273,15 +296,13 @@ export default function DoctorEncounter() {
                 </Card>
             </div>
 
-            {/* Prescription Dialog */}
             <Dialog open={prescriptionOpen} onOpenChange={setPrescriptionOpen}>
                 <DialogContent className="max-w-2xl">
                     <DialogHeader>
                         <DialogTitle>Create Prescription</DialogTitle>
-                        <DialogDescription>Add medications for {appointment.patientName}</DialogDescription>
+                        <DialogDescription>Add medications for {appointment.patient?.name}</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        {/* Added Medicines */}
                         {medicines.length > 0 && (
                             <div className="space-y-2">
                                 {medicines.map((med) => (
@@ -291,7 +312,7 @@ export default function DoctorEncounter() {
                                     >
                                         <div>
                                             <p className="font-medium">
-                                                {med.name} {med.dosage}
+                                                {med.name} {med.dose}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
                                                 {med.frequency} • {med.duration}
@@ -305,21 +326,32 @@ export default function DoctorEncounter() {
                             </div>
                         )}
 
-                        {/* Add Medicine Form */}
                         <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg">
-                            <div>
-                                <Label>Medicine Name</Label>
-                                <Input
-                                    value={newMedicine.name || ""}
-                                    onChange={(e) => setNewMedicine((prev) => ({ ...prev, name: e.target.value }))}
-                                    placeholder="e.g., Amoxicillin"
-                                />
+                            <div className="col-span-2">
+                                <Label>Medicine</Label>
+                                <Select
+                                    value={newMedicine.medicineId || ""}
+                                    onValueChange={(value) =>
+                                        setNewMedicine((prev) => ({ ...prev, medicineId: value }))
+                                    }
+                                >
+                                    <SelectTrigger>
+                                        <SelectValue placeholder="Select medicine" />
+                                    </SelectTrigger>
+                                    <SelectContent className="bg-popover">
+                                        {medicineOptions.map((med) => (
+                                            <SelectItem key={med.id} value={med.id || ""}>
+                                                {med.title}
+                                            </SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
                             </div>
                             <div>
                                 <Label>Dosage</Label>
                                 <Input
-                                    value={newMedicine.dosage || ""}
-                                    onChange={(e) => setNewMedicine((prev) => ({ ...prev, dosage: e.target.value }))}
+                                    value={newMedicine.dose || ""}
+                                    onChange={(e) => setNewMedicine((prev) => ({ ...prev, dose: e.target.value }))}
                                     placeholder="e.g., 500mg"
                                 />
                             </div>
@@ -379,56 +411,41 @@ export default function DoctorEncounter() {
 
                         <div className="flex justify-end gap-2">
                             <Button variant="outline" onClick={() => setPrescriptionOpen(false)}>
-                                Cancel
+                                Close
                             </Button>
-                            <Button onClick={savePrescription}>Save Prescription</Button>
                         </div>
                     </div>
                 </DialogContent>
             </Dialog>
 
-            {/* Lab Request Dialog */}
             <Dialog open={labRequestOpen} onOpenChange={setLabRequestOpen}>
                 <DialogContent className="max-w-lg">
                     <DialogHeader>
                         <DialogTitle>Order Lab Tests</DialogTitle>
-                        <DialogDescription>Select tests for {appointment.patientName}</DialogDescription>
+                        <DialogDescription>Select tests for {appointment.patient?.name}</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        <div>
-                            <Label>Priority</Label>
-                            <Select value={labPriority} onValueChange={setLabPriority}>
-                                <SelectTrigger>
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-popover">
-                                    <SelectItem value="routine">Routine</SelectItem>
-                                    <SelectItem value="urgent">Urgent</SelectItem>
-                                    <SelectItem value="stat">STAT</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
                         <div>
                             <Label>Select Tests</Label>
                             <ScrollArea className="h-48 border rounded-lg p-3 mt-1">
                                 <div className="space-y-2">
-                                    {availableLabTests.map((test) => (
+                                    {tests.map((test) => (
                                         <div key={test.id} className="flex items-center space-x-2">
                                             <Checkbox
                                                 id={test.id}
-                                                checked={selectedTests.includes(test.id)}
+                                                checked={selectedTests.includes(test.id || "")}
                                                 onCheckedChange={(checked) => {
                                                     if (checked) {
-                                                        setSelectedTests((prev) => [...prev, test.id]);
+                                                        setSelectedTests((prev) => [...prev, test.id || ""]);
                                                     } else {
-                                                        setSelectedTests((prev) => prev.filter((t) => t !== test.id));
+                                                        setSelectedTests((prev) =>
+                                                            prev.filter((t) => t !== test.id)
+                                                        );
                                                     }
                                                 }}
                                             />
                                             <label htmlFor={test.id} className="text-sm cursor-pointer flex-1">
-                                                {test.name}
-                                                <span className="text-muted-foreground ml-2">({test.category})</span>
+                                                {test.title}
                                             </label>
                                         </div>
                                     ))}
@@ -448,9 +465,8 @@ export default function DoctorEncounter() {
 
                         <div className="flex justify-end gap-2">
                             <Button variant="outline" onClick={() => setLabRequestOpen(false)}>
-                                Cancel
+                                Close
                             </Button>
-                            <Button onClick={saveLabRequest}>Submit Request</Button>
                         </div>
                     </div>
                 </DialogContent>

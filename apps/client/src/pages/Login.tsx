@@ -1,17 +1,14 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserRole } from "@/mock/users";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Separator } from "@/components/ui/separator";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { User, Stethoscope, FlaskConical, Pill, Shield, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
     email: z.string().email("Please enter a valid email"),
@@ -20,18 +17,9 @@ const loginSchema = z.object({
 
 type LoginForm = z.infer<typeof loginSchema>;
 
-const demoButtons: { role: UserRole; label: string; icon: React.ElementType }[] = [
-    { role: "patient", label: "Patient", icon: User },
-    { role: "doctor", label: "Doctor", icon: Stethoscope },
-    { role: "lab", label: "Lab Tech", icon: FlaskConical },
-    { role: "pharmacist", label: "Pharmacist", icon: Pill },
-    { role: "admin", label: "Admin", icon: Shield }
-];
-
 export default function Login() {
     const navigate = useNavigate();
-    const { login, loginAs, isLoading } = useAuth();
-    const [demoLoading, setDemoLoading] = useState<UserRole | null>(null);
+    const { login, isLoading } = useAuth();
 
     const {
         register,
@@ -42,24 +30,13 @@ export default function Login() {
     });
 
     const onSubmit = async (data: LoginForm) => {
-        const success = await login(data.email, data.password);
-        if (success) {
+        const user = await login(data.email, data.password);
+        if (user) {
             toast.success("Welcome back!");
-            // Navigate based on user role (will be determined by the auth context)
-            navigate("/patient/dashboard");
+            navigate(`/${user.role}/dashboard`);
         } else {
-            toast.error("Invalid credentials. Try one of the demo accounts.");
+            toast.error("Invalid credentials or 2FA required.");
         }
-    };
-
-    const handleDemoLogin = async (role: UserRole) => {
-        setDemoLoading(role);
-        // Simulate loading
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        loginAs(role);
-        toast.success(`Logged in as ${role}`);
-        navigate(`/${role}/dashboard`);
-        setDemoLoading(null);
     };
 
     return (
@@ -139,40 +116,6 @@ export default function Login() {
                                     Sign In
                                 </Button>
                             </form>
-
-                            <div className="mt-6">
-                                <div className="relative">
-                                    <div className="absolute inset-0 flex items-center">
-                                        <Separator />
-                                    </div>
-                                    <div className="relative flex justify-center text-xs uppercase">
-                                        <span className="bg-card px-2 text-muted-foreground">
-                                            Or login as demo user
-                                        </span>
-                                    </div>
-                                </div>
-
-                                <div className="grid grid-cols-5 gap-2 mt-4">
-                                    {demoButtons.map(({ role, label, icon: Icon }) => (
-                                        <Button
-                                            key={role}
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            className="flex flex-col h-auto py-3 px-2 gap-1"
-                                            onClick={() => handleDemoLogin(role)}
-                                            disabled={demoLoading !== null}
-                                        >
-                                            {demoLoading === role ? (
-                                                <Loader2 className="h-4 w-4 animate-spin" />
-                                            ) : (
-                                                <Icon className="h-4 w-4" />
-                                            )}
-                                            <span className="text-[10px]">{label}</span>
-                                        </Button>
-                                    ))}
-                                </div>
-                            </div>
 
                             <p className="text-center text-sm text-muted-foreground mt-6">
                                 Don't have an account?{" "}

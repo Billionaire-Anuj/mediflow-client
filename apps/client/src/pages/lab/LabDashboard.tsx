@@ -1,39 +1,54 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { AppointmentDiagnosticsService } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
-import { mockLabRequests } from "@/mock/labRequests";
-import { mockDashboardStats } from "@/mock/config";
 import { FlaskConical, Clock, CheckCircle, AlertTriangle } from "lucide-react";
-import { format } from "date-fns";
-import { toast } from "sonner";
 
 export default function LabDashboard() {
-    const [loading, setLoading] = useState(true);
-    const [requests, setRequests] = useState(mockLabRequests);
-    const stats = mockDashboardStats.lab;
+    const { data, isLoading } = useQuery({
+        queryKey: ["lab-requests"],
+        queryFn: async () => AppointmentDiagnosticsService.getAllAppointmentDiagnosticsList({})
+    });
 
-    useEffect(() => {
-        const timer = setTimeout(() => setLoading(false), 400);
-        return () => clearTimeout(timer);
-    }, []);
+    const stats = useMemo(() => {
+        let pending = 0;
+        let inProgress = 0;
+        let completed = 0;
+        let urgent = 0;
 
-    const updateStatus = (id: string, status: "in-progress" | "completed") => {
-        setRequests((prev) => prev.map((r) => (r.id === id ? { ...r, status } : r)));
-        toast.success(`Request marked as ${status}`);
-    };
+        (data?.result ?? []).forEach((apt) => {
+            (apt.diagnostics || []).forEach((diag) => {
+                if (diag.status === "Resulted") {
+                    completed += 1;
+                } else if (diag.status === "Collected") {
+                    inProgress += 1;
+                } else {
+                    pending += 1;
+                }
+                if (diag.status === "Cancelled") {
+                    urgent += 1;
+                }
+            });
+        });
 
-    if (loading)
+        return {
+            pendingRequests: pending,
+            inProgress,
+            completedToday: completed,
+            urgentPending: urgent
+        };
+    }, [data]);
+
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Lab Dashboard" />
                 <ListSkeleton items={4} />
             </div>
         );
-
-    const pending = requests.filter((r) => r.status === "requested");
+    }
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -69,7 +84,7 @@ export default function LabDashboard() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{stats.completedToday}</p>
-                            <p className="text-sm text-muted-foreground">Completed Today</p>
+                            <p className="text-sm text-muted-foreground">Completed</p>
                         </div>
                     </CardContent>
                 </Card>
@@ -80,41 +95,11 @@ export default function LabDashboard() {
                         </div>
                         <div>
                             <p className="text-2xl font-bold">{stats.urgentPending}</p>
-                            <p className="text-sm text-muted-foreground">Urgent</p>
+                            <p className="text-sm text-muted-foreground">Cancelled</p>
                         </div>
                     </CardContent>
                 </Card>
             </div>
-
-            <Card>
-                <CardContent className="p-6">
-                    <h3 className="font-semibold mb-4">Pending Requests</h3>
-                    <div className="space-y-3">
-                        {pending.map((req) => (
-                            <div key={req.id} className="flex items-center justify-between p-4 bg-accent/50 rounded-lg">
-                                <div>
-                                    <p className="font-medium">{req.patientName}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {req.tests.map((t) => t.name).join(", ")}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {format(new Date(req.createdAt), "MMM d, h:mm a")}
-                                    </p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <StatusBadge variant={getStatusVariant(req.priority)}>{req.priority}</StatusBadge>
-                                    <Button size="sm" onClick={() => updateStatus(req.id, "in-progress")}>
-                                        Start
-                                    </Button>
-                                </div>
-                            </div>
-                        ))}
-                        {pending.length === 0 && (
-                            <p className="text-center text-muted-foreground py-4">No pending requests</p>
-                        )}
-                    </div>
-                </CardContent>
-            </Card>
         </div>
     );
 }

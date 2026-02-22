@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { LogOut, User, Menu } from "lucide-react";
+import { getRoleLabel } from "@/lib/auth";
 
 interface TopbarProps {
     onMenuClick?: () => void;
@@ -28,17 +29,6 @@ export function Topbar({ onMenuClick, showMenuButton = false }: TopbarProps) {
             .join("")
             .toUpperCase()
             .slice(0, 2);
-    };
-
-    const getRoleLabel = (role: string) => {
-        const labels: Record<string, string> = {
-            patient: "Patient",
-            doctor: "Doctor",
-            lab: "Lab Technician",
-            pharmacist: "Pharmacist",
-            admin: "Administrator"
-        };
-        return labels[role] || role;
     };
 
     return (
@@ -70,7 +60,9 @@ export function Topbar({ onMenuClick, showMenuButton = false }: TopbarProps) {
                             </Avatar>
                             <div className="hidden sm:flex flex-col items-start text-left">
                                 <span className="text-sm font-medium">{user?.name}</span>
-                                <span className="text-xs text-muted-foreground">{user && getRoleLabel(user.role)}</span>
+                                <span className="text-xs text-muted-foreground">
+                                    {user && getRoleLabel(user.role, user.roleName)}
+                                </span>
                             </div>
                         </Button>
                     </DropdownMenuTrigger>

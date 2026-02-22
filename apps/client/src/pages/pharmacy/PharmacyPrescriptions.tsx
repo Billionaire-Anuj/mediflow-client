@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { AppointmentMedicationsService, type AppointmentDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -8,33 +10,54 @@ import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockPrescriptions, Prescription } from "@/mock/prescriptions";
 import { Search, Pill, Clock, User, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
 
+interface PrescriptionItem {
+    id: string;
+    appointment: AppointmentDto;
+    status?: string | null;
+    itemCount: number;
+    items: string[];
+}
+
 export default function PharmacyPrescriptions() {
-    const [loading, setLoading] = useState(true);
-    const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
     const [statusFilter, setStatusFilter] = useState<string>("all");
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            setPrescriptions(mockPrescriptions);
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, []);
+    const { data, isLoading } = useQuery({
+        queryKey: ["pharmacy-prescriptions"],
+        queryFn: async () => AppointmentMedicationsService.getAllAppointmentMedicationsList({})
+    });
+
+    const prescriptions = useMemo<PrescriptionItem[]>(() => {
+        const list: PrescriptionItem[] = [];
+        (data?.result ?? []).forEach((apt) => {
+            (apt.medications || []).forEach((med) => {
+                if (!med.id) return;
+                list.push({
+                    id: med.id,
+                    appointment: apt,
+                    status: med.status,
+                    itemCount: med.drugs?.length || 0,
+                    items: (med.drugs || [])
+                        .map((drug) => `${drug.medicine?.title || "Medicine"} ${drug.dose || ""}`.trim())
+                        .filter(Boolean)
+                });
+            });
+        });
+        return list;
+    }, [data]);
 
     const filteredPrescriptions = prescriptions.filter((rx) => {
         const matchesSearch =
-            rx.patientName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            rx.doctorName.toLowerCase().includes(searchQuery.toLowerCase());
+            rx.appointment.patient?.name?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            rx.appointment.doctor?.name?.toLowerCase().includes(searchQuery.toLowerCase());
         const matchesStatus = statusFilter === "all" || rx.status === statusFilter;
         return matchesSearch && matchesStatus;
     });
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Prescriptions" />
@@ -47,7 +70,6 @@ export default function PharmacyPrescriptions() {
         <div className="space-y-6 animate-fade-in">
             <PageHeader title="Prescriptions" description="Manage and dispense prescriptions" />
 
-            {/* Filters */}
             <div className="flex flex-col sm:flex-row gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -64,14 +86,14 @@ export default function PharmacyPrescriptions() {
                     </SelectTrigger>
                     <SelectContent className="bg-popover">
                         <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="pending">Pending</SelectItem>
-                        <SelectItem value="partially-dispensed">Partially Dispensed</SelectItem>
-                        <SelectItem value="dispensed">Dispensed</SelectItem>
+                        <SelectItem value="Appointed">Appointed</SelectItem>
+                        <SelectItem value="Collected">Collected</SelectItem>
+                        <SelectItem value="Resulted">Resulted</SelectItem>
+                        <SelectItem value="Cancelled">Cancelled</SelectItem>
                     </SelectContent>
                 </Select>
             </div>
 
-            {/* Prescriptions List */}
             {filteredPrescriptions.length === 0 ? (
                 <EmptyState icon={Pill} title="No prescriptions found" description="Try adjusting your filters" />
             ) : (
@@ -85,21 +107,20 @@ export default function PharmacyPrescriptions() {
                                             <User className="h-6 w-6 text-primary" />
                                         </div>
                                         <div>
-                                            <h3 className="font-medium">{rx.patientName}</h3>
+                                            <h3 className="font-medium">{rx.appointment.patient?.name}</h3>
                                             <p className="text-sm text-muted-foreground">
-                                                Prescribed by {rx.doctorName}
+                                                Prescribed by {rx.appointment.doctor?.name}
                                             </p>
                                             <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                                                 <Clock className="h-3 w-3" />
-                                                {format(new Date(rx.createdAt), "MMM d, yyyy h:mm a")}
+                                                {rx.appointment.bookedDate
+                                                    ? format(new Date(rx.appointment.bookedDate), "MMM d, yyyy h:mm a")
+                                                    : ""}
                                             </div>
                                             <div className="flex flex-wrap gap-1 mt-2">
-                                                {rx.items.slice(0, 2).map((item) => (
-                                                    <span
-                                                        key={item.id}
-                                                        className="px-2 py-0.5 bg-accent rounded text-xs"
-                                                    >
-                                                        {item.medicineName} {item.dosage}
+                                                {rx.items.slice(0, 2).map((item, idx) => (
+                                                    <span key={`${rx.id}-${idx}`} className="px-2 py-0.5 bg-accent rounded text-xs">
+                                                        {item}
                                                     </span>
                                                 ))}
                                                 {rx.items.length > 2 && (
@@ -111,7 +132,7 @@ export default function PharmacyPrescriptions() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <StatusBadge variant={getStatusVariant(rx.status)}>{rx.status}</StatusBadge>
+                                        <StatusBadge variant={getStatusVariant(rx.status || "pending")}>{rx.status}</StatusBadge>
                                         <Button size="sm" asChild>
                                             <Link to={`/pharmacy/prescription/${rx.id}`}>
                                                 Open <ArrowRight className="h-4 w-4 ml-1" />

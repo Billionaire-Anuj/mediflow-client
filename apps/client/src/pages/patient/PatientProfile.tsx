@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { ProfileService } from "@mediflow/mediflow-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -17,38 +19,67 @@ const profileSchema = z.object({
     name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
     email: z.string().email("Invalid email address"),
     phone: z.string().optional(),
-    address: z.string().max(500).optional(),
-    emergencyContact: z.string().max(100).optional(),
-    emergencyPhone: z.string().optional()
+    address: z.string().max(500).optional()
 });
 
 type ProfileForm = z.infer<typeof profileSchema>;
 
 export default function PatientProfile() {
+    const queryClient = useQueryClient();
     const { user } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
+
+    const { data: profileData } = useQuery({
+        queryKey: ["profile"],
+        queryFn: async () => ProfileService.getProfile()
+    });
 
     const {
         register,
         handleSubmit,
+        reset,
         formState: { errors, isDirty }
     } = useForm<ProfileForm>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
-            name: user?.name || "",
-            email: user?.email || "",
-            phone: user?.phone || "",
-            address: "",
-            emergencyContact: "",
-            emergencyPhone: ""
+            name: "",
+            email: "",
+            phone: "",
+            address: ""
         }
+    });
+
+    useEffect(() => {
+        if (profileData?.result) {
+            reset({
+                name: profileData.result.name || "",
+                email: profileData.result.emailAddress || "",
+                phone: profileData.result.phoneNumber || "",
+                address: profileData.result.address || ""
+            });
+        }
+    }, [profileData, reset]);
+
+    const mutation = useMutation({
+        mutationFn: async (data: ProfileForm) =>
+            ProfileService.updateProfile({
+                requestBody: {
+                    name: data.name,
+                    emailAddress: data.email,
+                    phoneNumber: data.phone,
+                    address: data.address
+                }
+            }),
+        onSuccess: () => {
+            toast.success("Profile updated successfully");
+            queryClient.invalidateQueries({ queryKey: ["profile"] });
+        },
+        onError: () => toast.error("Failed to update profile")
     });
 
     const onSubmit = async (data: ProfileForm) => {
         setIsLoading(true);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        console.log("Profile update:", data);
-        toast.success("Profile updated successfully");
+        await mutation.mutateAsync(data);
         setIsLoading(false);
     };
 
@@ -66,7 +97,6 @@ export default function PatientProfile() {
             <PageHeader title="Profile" description="Manage your personal information" />
 
             <div className="grid gap-6 lg:grid-cols-3">
-                {/* Profile Photo Card */}
                 <Card>
                     <CardContent className="pt-6">
                         <div className="flex flex-col items-center">
@@ -82,12 +112,11 @@ export default function PatientProfile() {
                             </div>
                             <h3 className="mt-4 font-semibold text-lg">{user?.name}</h3>
                             <p className="text-sm text-muted-foreground">{user?.email}</p>
-                            <p className="text-xs text-muted-foreground mt-1 capitalize">{user?.role} Account</p>
+                            <p className="text-xs text-muted-foreground mt-1">{user?.roleName || "Account"}</p>
                         </div>
                     </CardContent>
                 </Card>
 
-                {/* Profile Form */}
                 <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle>Personal Information</CardTitle>
@@ -130,28 +159,6 @@ export default function PatientProfile() {
                                         placeholder="Enter your address"
                                         rows={2}
                                     />
-                                </div>
-                            </div>
-
-                            <div className="pt-4 border-t">
-                                <h4 className="font-medium mb-4">Emergency Contact</h4>
-                                <div className="grid gap-4 sm:grid-cols-2">
-                                    <div className="space-y-2">
-                                        <Label htmlFor="emergencyContact">Contact Name</Label>
-                                        <Input
-                                            id="emergencyContact"
-                                            {...register("emergencyContact")}
-                                            placeholder="Emergency contact name"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label htmlFor="emergencyPhone">Contact Phone</Label>
-                                        <Input
-                                            id="emergencyPhone"
-                                            {...register("emergencyPhone")}
-                                            placeholder="+1 (555) 000-0000"
-                                        />
-                                    </div>
                                 </div>
                             </div>
 

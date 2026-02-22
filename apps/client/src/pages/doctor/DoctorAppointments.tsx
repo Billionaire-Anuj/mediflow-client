@@ -1,5 +1,7 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { AppointmentService, DoctorService, type AppointmentDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,36 +9,42 @@ import { Calendar } from "@/components/ui/calendar";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { mockAppointments, Appointment } from "@/mock/appointments";
-import { CalendarIcon, Clock, Play, CheckCircle } from "lucide-react";
+import { CalendarIcon, Clock, Play } from "lucide-react";
 import { format, isSameDay } from "date-fns";
-import { toast } from "sonner";
+import { combineDateAndTime } from "@/lib/datetime";
 
 export default function DoctorAppointments() {
-    const [loading, setLoading] = useState(true);
-    const [appointments, setAppointments] = useState<Appointment[]>([]);
     const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const doctorAppointments = mockAppointments.filter((a) => a.doctorId === "doctor-1");
-            setAppointments(doctorAppointments);
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, []);
+    const { data: doctorProfile } = useQuery({
+        queryKey: ["doctor-profile"],
+        queryFn: async () => DoctorService.getDoctorProfile()
+    });
 
-    const appointmentsForDate = appointments.filter((apt) => isSameDay(new Date(apt.dateTime), selectedDate));
+    const doctorId = doctorProfile?.result?.id;
 
-    const handleMarkCompleted = (apt: Appointment) => {
-        setAppointments((prev) => prev.map((a) => (a.id === apt.id ? { ...a, status: "completed" as const } : a)));
-        toast.success("Appointment marked as completed");
-    };
+    const { data: appointmentsData, isLoading } = useQuery({
+        queryKey: ["doctor-appointments", doctorId],
+        enabled: !!doctorId,
+        queryFn: async () => AppointmentService.getAllAppointmentsList({ doctorId })
+    });
 
-    // Get dates with appointments for calendar highlighting
-    const datesWithAppointments = appointments.map((a) => new Date(a.dateTime));
+    const appointments = appointmentsData?.result ?? [];
 
-    if (loading) {
+    const appointmentsForDate = useMemo(() => {
+        return appointments.filter((apt) => {
+            const start = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime);
+            return start ? isSameDay(start, selectedDate) : false;
+        });
+    }, [appointments, selectedDate]);
+
+    const datesWithAppointments = useMemo(() => {
+        return appointments
+            .map((apt) => combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime))
+            .filter((d): d is Date => !!d);
+    }, [appointments]);
+
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Appointments" />
@@ -50,7 +58,6 @@ export default function DoctorAppointments() {
             <PageHeader title="Appointments" description="Manage your patient appointments" />
 
             <div className="grid gap-6 lg:grid-cols-3">
-                {/* Calendar */}
                 <Card className="lg:col-span-1">
                     <CardContent className="p-4">
                         <Calendar
@@ -72,7 +79,6 @@ export default function DoctorAppointments() {
                     </CardContent>
                 </Card>
 
-                {/* Appointments List */}
                 <div className="lg:col-span-2 space-y-4">
                     <div className="flex items-center justify-between">
                         <h2 className="text-lg font-semibold">{format(selectedDate, "EEEE, MMMM d, yyyy")}</h2>
@@ -90,65 +96,63 @@ export default function DoctorAppointments() {
                     ) : (
                         <div className="space-y-3">
                             {appointmentsForDate
-                                .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())
-                                .map((apt) => (
-                                    <Card key={apt.id} className="card-interactive">
-                                        <CardContent className="p-4">
-                                            <div className="flex items-center justify-between">
-                                                <div className="flex gap-4">
-                                                    <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                                                        <span className="font-medium text-primary">
-                                                            {apt.patientName
-                                                                .split(" ")
-                                                                .map((n) => n[0])
-                                                                .join("")}
-                                                        </span>
-                                                    </div>
-                                                    <div>
-                                                        <h3 className="font-medium">{apt.patientName}</h3>
-                                                        <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
-                                                            <span className="flex items-center gap-1">
-                                                                <Clock className="h-3 w-3" />
-                                                                {format(new Date(apt.dateTime), "h:mm a")}
+                                .sort((a, b) => {
+                                    const aStart = combineDateAndTime(a.timeslot?.date, a.timeslot?.startTime)?.getTime() || 0;
+                                    const bStart = combineDateAndTime(b.timeslot?.date, b.timeslot?.startTime)?.getTime() || 0;
+                                    return aStart - bStart;
+                                })
+                                .map((apt) => {
+                                    const start = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime);
+                                    const end = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.endTime);
+                                    return (
+                                        <Card key={apt.id} className="card-interactive">
+                                            <CardContent className="p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className="flex gap-4">
+                                                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                                                            <span className="font-medium text-primary">
+                                                                {apt.patient?.name
+                                                                    ?.split(" ")
+                                                                    .map((n) => n[0])
+                                                                    .join("") || "P"}
                                                             </span>
-                                                            <span>•</span>
-                                                            <span>{apt.duration} min</span>
-                                                            <span>•</span>
-                                                            <span className="capitalize">{apt.type}</span>
                                                         </div>
-                                                        {apt.notes && (
-                                                            <p className="text-sm text-muted-foreground mt-1">
-                                                                {apt.notes}
-                                                            </p>
-                                                        )}
+                                                        <div>
+                                                            <h3 className="font-medium">{apt.patient?.name}</h3>
+                                                            <div className="flex items-center gap-3 text-sm text-muted-foreground mt-1">
+                                                                {start && (
+                                                                    <span className="flex items-center gap-1">
+                                                                        <Clock className="h-3 w-3" />
+                                                                        {format(start, "h:mm a")}
+                                                                    </span>
+                                                                )}
+                                                                {end && start && (
+                                                                    <span>• {format(end, "h:mm a")}</span>
+                                                                )}
+                                                            </div>
+                                                            {apt.notes && (
+                                                                <p className="text-sm text-muted-foreground mt-1">{apt.notes}</p>
+                                                            )}
+                                                        </div>
                                                     </div>
-                                                </div>
-                                                <div className="flex items-center gap-2">
-                                                    <StatusBadge variant={getStatusVariant(apt.status)}>
-                                                        {apt.status}
-                                                    </StatusBadge>
-                                                    {apt.status === "booked" && (
-                                                        <>
+                                                    <div className="flex items-center gap-2">
+                                                        <StatusBadge variant={getStatusVariant(apt.status || "scheduled")}>
+                                                            {apt.status}
+                                                        </StatusBadge>
+                                                        {apt.status === "Scheduled" && (
                                                             <Button size="sm" asChild>
                                                                 <Link to={`/doctor/encounter/${apt.id}`}>
                                                                     <Play className="h-4 w-4 mr-1" />
                                                                     Open
                                                                 </Link>
                                                             </Button>
-                                                            <Button
-                                                                size="sm"
-                                                                variant="outline"
-                                                                onClick={() => handleMarkCompleted(apt)}
-                                                            >
-                                                                <CheckCircle className="h-4 w-4" />
-                                                            </Button>
-                                                        </>
-                                                    )}
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </CardContent>
-                                    </Card>
-                                ))}
+                                            </CardContent>
+                                        </Card>
+                                    );
+                                })}
                         </div>
                     )}
                 </div>

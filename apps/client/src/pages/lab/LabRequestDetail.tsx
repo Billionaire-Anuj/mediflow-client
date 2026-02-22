@@ -1,5 +1,12 @@
-import { useState, useEffect } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+    AppointmentDiagnosticsService,
+    type AppointmentDto,
+    type AppointmentDiagnosticsDto,
+    type AppointmentDiagnosticTestsDto
+} from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,126 +15,111 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { mockLabRequests, LabRequest } from "@/mock/labRequests";
-import { ArrowLeft, User, Upload, Plus, X, Loader2, Save, FileText } from "lucide-react";
+import { ArrowLeft, User, Upload, Loader2, Save } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { combineDateAndTime } from "@/lib/datetime";
+
+interface LabItem {
+    appointment: AppointmentDto;
+    diagnostics: AppointmentDiagnosticsDto;
+}
 
 interface ResultEntry {
-    testName: string;
     value: string;
     unit: string;
-    referenceRange: string;
-    flag: "normal" | "low" | "high" | "critical";
-    remarks: string;
+    lowerRange: string;
+    upperRange: string;
+    interpretation: string;
 }
 
 export default function LabRequestDetail() {
     const { id } = useParams<{ id: string }>();
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [request, setRequest] = useState<LabRequest | null>(null);
-    const [results, setResults] = useState<ResultEntry[]>([]);
+    const queryClient = useQueryClient();
     const [resultNotes, setResultNotes] = useState("");
-    const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+    const [results, setResults] = useState<Record<string, ResultEntry>>({});
+
+    const { data, isLoading } = useQuery({
+        queryKey: ["lab-requests"],
+        queryFn: async () => AppointmentDiagnosticsService.getAllAppointmentDiagnosticsList({})
+    });
+
+    const labItem = useMemo<LabItem | null>(() => {
+        const appointments = data?.result ?? [];
+        for (const apt of appointments) {
+            for (const diag of apt.diagnostics || []) {
+                if (diag.id === id) {
+                    return { appointment: apt, diagnostics: diag };
+                }
+            }
+        }
+        return null;
+    }, [data, id]);
 
     useEffect(() => {
-        const timer = setTimeout(() => {
-            const req = mockLabRequests.find((r) => r.id === id);
-            setRequest(req || null);
-            if (req?.results) {
-                setResults(
-                    req.results.map((r) => ({
-                        testName: r.testName,
-                        value: r.value,
-                        unit: r.unit,
-                        referenceRange: r.referenceRange,
-                        flag: r.flag || "normal",
-                        remarks: r.remarks || ""
-                    }))
-                );
-            }
-            if (req?.resultNotes) {
-                setResultNotes(req.resultNotes);
-            }
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, [id]);
+        if (!labItem) return;
+        const initial: Record<string, ResultEntry> = {};
+        (labItem.diagnostics.diagnosticTests || []).forEach((test) => {
+            if (!test.id) return;
+            initial[test.id] = {
+                value: test.result?.value || "",
+                unit: test.result?.unit || "",
+                lowerRange: test.result?.lowerRange || "",
+                upperRange: test.result?.upperRange || "",
+                interpretation: test.result?.interpretation || ""
+            };
+        });
+        setResults(initial);
+        setResultNotes(labItem.diagnostics.notes || "");
+    }, [labItem]);
 
-    const addResultRow = () => {
-        setResults((prev) => [
-            ...prev,
-            {
-                testName: "",
-                value: "",
-                unit: "",
-                referenceRange: "",
-                flag: "normal",
-                remarks: ""
-            }
-        ]);
-    };
-
-    const updateResult = (index: number, field: keyof ResultEntry, value: string) => {
-        setResults((prev) => prev.map((r, i) => (i === index ? { ...r, [field]: value } : r)));
-    };
-
-    const removeResult = (index: number) => {
-        setResults((prev) => prev.filter((_, i) => i !== index));
-    };
-
-    const updateStatus = async (status: LabRequest["status"]) => {
-        setSaving(true);
-        await new Promise((resolve) => setTimeout(resolve, 500));
-        setRequest((prev) => (prev ? { ...prev, status } : null));
-        toast.success(`Status updated to ${status}`);
-        setSaving(false);
-    };
-
-    const submitResults = async () => {
-        if (results.length === 0) {
-            toast.error("Please add at least one result");
-            return;
+    const assignMutation = useMutation({
+        mutationFn: async () => AppointmentDiagnosticsService.assignLabTechnician({ appointmentDiagnosticsId: id! }),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
         }
+    });
 
-        const incompleteResults = results.filter((r) => !r.testName || !r.value);
-        if (incompleteResults.length > 0) {
-            toast.error("Please complete all result fields");
-            return;
-        }
+    const submitResultMutation = useMutation({
+        mutationFn: async ({ testId, entry }: { testId: string; entry: ResultEntry }) => {
+            return AppointmentDiagnosticsService.submitDiagnosticTestResult({
+                appointmentDiagnosticTestId: testId,
+                requestBody: {
+                    appointmentDiagnosticTestId: testId,
+                    value: entry.value,
+                    unit: entry.unit,
+                    lowerRange: entry.lowerRange,
+                    upperRange: entry.upperRange,
+                    interpretation: entry.interpretation
+                }
+            });
+        },
+        onSuccess: () => {
+            toast.success("Result saved");
+            queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+        },
+        onError: () => toast.error("Failed to save result")
+    });
 
-        setSaving(true);
-        await new Promise((resolve) => setTimeout(resolve, 800));
+    const uploadMutation = useMutation({
+        mutationFn: async ({ testId, file }: { testId: string; file: File }) => {
+            return AppointmentDiagnosticsService.uploadDiagnosticReport({
+                appointmentDiagnosticTestId: testId,
+                formData: {
+                    AppointmentDiagnosticTestId: testId,
+                    Report: file
+                }
+            });
+        },
+        onSuccess: () => {
+            toast.success("Report uploaded");
+            queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
+        },
+        onError: () => toast.error("Failed to upload report")
+    });
 
-        setRequest((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      status: "completed",
-                      results: results.map((r) => ({
-                          testId: "",
-                          testName: r.testName,
-                          value: r.value,
-                          unit: r.unit,
-                          referenceRange: r.referenceRange,
-                          flag: r.flag,
-                          remarks: r.remarks
-                      })),
-                      resultNotes,
-                      processedBy: "Emma Rodriguez",
-                      processedAt: new Date().toISOString()
-                  }
-                : null
-        );
-
-        toast.success("Results submitted successfully");
-        setSaving(false);
-    };
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Lab Request" />
@@ -136,7 +128,7 @@ export default function LabRequestDetail() {
         );
     }
 
-    if (!request) {
+    if (!labItem) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Request Not Found" />
@@ -147,6 +139,9 @@ export default function LabRequestDetail() {
         );
     }
 
+    const { appointment, diagnostics } = labItem;
+    const start = combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime);
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="flex items-center gap-4">
@@ -156,13 +151,12 @@ export default function LabRequestDetail() {
                     </Link>
                 </Button>
                 <PageHeader
-                    title={`Lab Request #${request.id.slice(-4)}`}
-                    description={format(new Date(request.createdAt), "MMMM d, yyyy")}
+                    title={`Lab Request #${diagnostics.id?.slice(-4)}`}
+                    description={start ? format(start, "MMMM d, yyyy") : ""}
                 />
             </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
-                {/* Request Details */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Request Details</CardTitle>
@@ -173,7 +167,7 @@ export default function LabRequestDetail() {
                                 <User className="h-6 w-6 text-primary" />
                             </div>
                             <div>
-                                <p className="font-medium">{request.patientName}</p>
+                                <p className="font-medium">{appointment.patient?.name}</p>
                                 <p className="text-sm text-muted-foreground">Patient</p>
                             </div>
                         </div>
@@ -181,232 +175,201 @@ export default function LabRequestDetail() {
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Ordered by</span>
-                                <span>{request.doctorName}</span>
-                            </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Priority</span>
-                                <StatusBadge variant={getStatusVariant(request.priority)}>
-                                    {request.priority}
-                                </StatusBadge>
+                                <span>{appointment.doctor?.name}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Status</span>
-                                <StatusBadge variant={getStatusVariant(request.status)}>{request.status}</StatusBadge>
+                                <StatusBadge variant={getStatusVariant(diagnostics.status || "scheduled")}>
+                                    {diagnostics.status}
+                                </StatusBadge>
                             </div>
                         </div>
 
                         <div>
                             <p className="text-sm font-medium mb-2">Tests Ordered</p>
                             <div className="space-y-1">
-                                {request.tests.map((test) => (
+                                {(diagnostics.diagnosticTests || []).map((test) => (
                                     <div key={test.id} className="p-2 bg-accent/50 rounded text-sm">
-                                        {test.name}
+                                        {test.diagnosticTest?.title}
                                     </div>
                                 ))}
                             </div>
                         </div>
 
-                        {request.clinicalNotes && (
+                        {diagnostics.notes && (
                             <div>
                                 <p className="text-sm font-medium mb-1">Clinical Notes</p>
-                                <p className="text-sm text-muted-foreground">{request.clinicalNotes}</p>
+                                <p className="text-sm text-muted-foreground">{diagnostics.notes}</p>
                             </div>
                         )}
 
-                        {request.status === "requested" && (
-                            <Button className="w-full" onClick={() => updateStatus("in-progress")} disabled={saving}>
-                                Start Processing
-                            </Button>
-                        )}
+                        <Button
+                            className="w-full"
+                            variant="outline"
+                            onClick={() => assignMutation.mutate()}
+                            disabled={assignMutation.isPending}
+                        >
+                            {assignMutation.isPending ? "Assigning..." : "Assign to Me"}
+                        </Button>
                     </CardContent>
                 </Card>
 
-                {/* Results Entry */}
                 <Card className="lg:col-span-2">
-                    <CardHeader className="flex flex-row items-center justify-between">
+                    <CardHeader>
                         <CardTitle className="text-base">Lab Results</CardTitle>
-                        {request.status !== "completed" && (
-                            <Button size="sm" variant="outline" onClick={addResultRow}>
-                                <Plus className="h-4 w-4 mr-1" /> Add Row
-                            </Button>
-                        )}
                     </CardHeader>
                     <CardContent>
-                        {request.status === "completed" && request.results ? (
+                        <ScrollArea className="max-h-[500px]">
                             <div className="space-y-4">
-                                <div className="border rounded-lg overflow-hidden">
-                                    <table className="w-full text-sm">
-                                        <thead className="bg-muted">
-                                            <tr>
-                                                <th className="text-left p-3 font-medium">Test</th>
-                                                <th className="text-left p-3 font-medium">Value</th>
-                                                <th className="text-left p-3 font-medium">Reference</th>
-                                                <th className="text-left p-3 font-medium">Status</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            {request.results.map((result, idx) => (
-                                                <tr key={idx} className="border-t">
-                                                    <td className="p-3">{result.testName}</td>
-                                                    <td className="p-3">
-                                                        {result.value} {result.unit}
-                                                    </td>
-                                                    <td className="p-3 text-muted-foreground">
-                                                        {result.referenceRange}
-                                                    </td>
-                                                    <td className="p-3">
-                                                        <StatusBadge
-                                                            variant={
-                                                                result.flag === "normal"
-                                                                    ? "success"
-                                                                    : result.flag === "critical"
-                                                                      ? "danger"
-                                                                      : "warning"
-                                                            }
-                                                        >
-                                                            {result.flag || "normal"}
-                                                        </StatusBadge>
-                                                    </td>
-                                                </tr>
-                                            ))}
-                                        </tbody>
-                                    </table>
-                                </div>
-                                {request.resultNotes && (
-                                    <div className="p-3 bg-accent/50 rounded-lg">
-                                        <p className="text-sm font-medium">Notes</p>
-                                        <p className="text-sm text-muted-foreground">{request.resultNotes}</p>
-                                    </div>
-                                )}
-                                <div className="text-sm text-muted-foreground">
-                                    Processed by {request.processedBy} on{" "}
-                                    {format(new Date(request.processedAt!), "MMM d, yyyy h:mm a")}
-                                </div>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                <ScrollArea className="max-h-[400px]">
-                                    <div className="space-y-3">
-                                        {results.map((result, index) => (
-                                            <div
-                                                key={index}
-                                                className="grid grid-cols-6 gap-2 p-3 border rounded-lg items-end"
-                                            >
-                                                <div className="col-span-2">
-                                                    <Label className="text-xs">Test Name</Label>
-                                                    <Input
-                                                        value={result.testName}
-                                                        onChange={(e) =>
-                                                            updateResult(index, "testName", e.target.value)
-                                                        }
-                                                        placeholder="Test name"
-                                                        className="h-9"
-                                                    />
-                                                </div>
+                                {(diagnostics.diagnosticTests || []).map((test) => {
+                                    const entry = results[test.id || ""] || {
+                                        value: "",
+                                        unit: "",
+                                        lowerRange: "",
+                                        upperRange: "",
+                                        interpretation: ""
+                                    };
+                                    return (
+                                        <div key={test.id} className="p-4 border rounded-lg space-y-3">
+                                            <div>
+                                                <p className="font-medium">{test.diagnosticTest?.title}</p>
+                                                <p className="text-xs text-muted-foreground">
+                                                    {test.diagnosticTest?.description}
+                                                </p>
+                                            </div>
+                                            <div className="grid grid-cols-2 gap-3">
                                                 <div>
                                                     <Label className="text-xs">Value</Label>
                                                     <Input
-                                                        value={result.value}
-                                                        onChange={(e) => updateResult(index, "value", e.target.value)}
-                                                        placeholder="0.0"
-                                                        className="h-9"
+                                                        value={entry.value}
+                                                        onChange={(e) =>
+                                                            setResults((prev) => ({
+                                                                ...prev,
+                                                                [test.id || ""]: {
+                                                                    ...entry,
+                                                                    value: e.target.value
+                                                                }
+                                                            }))
+                                                        }
+                                                        placeholder="Result value"
                                                     />
                                                 </div>
                                                 <div>
                                                     <Label className="text-xs">Unit</Label>
                                                     <Input
-                                                        value={result.unit}
-                                                        onChange={(e) => updateResult(index, "unit", e.target.value)}
-                                                        placeholder="mg/dL"
-                                                        className="h-9"
+                                                        value={entry.unit}
+                                                        onChange={(e) =>
+                                                            setResults((prev) => ({
+                                                                ...prev,
+                                                                [test.id || ""]: {
+                                                                    ...entry,
+                                                                    unit: e.target.value
+                                                                }
+                                                            }))
+                                                        }
+                                                        placeholder="Unit"
                                                     />
                                                 </div>
                                                 <div>
-                                                    <Label className="text-xs">Flag</Label>
-                                                    <Select
-                                                        value={result.flag}
-                                                        onValueChange={(v) => updateResult(index, "flag", v)}
-                                                    >
-                                                        <SelectTrigger className="h-9">
-                                                            <SelectValue />
-                                                        </SelectTrigger>
-                                                        <SelectContent className="bg-popover">
-                                                            <SelectItem value="normal">Normal</SelectItem>
-                                                            <SelectItem value="low">Low</SelectItem>
-                                                            <SelectItem value="high">High</SelectItem>
-                                                            <SelectItem value="critical">Critical</SelectItem>
-                                                        </SelectContent>
-                                                    </Select>
+                                                    <Label className="text-xs">Lower Range</Label>
+                                                    <Input
+                                                        value={entry.lowerRange}
+                                                        onChange={(e) =>
+                                                            setResults((prev) => ({
+                                                                ...prev,
+                                                                [test.id || ""]: {
+                                                                    ...entry,
+                                                                    lowerRange: e.target.value
+                                                                }
+                                                            }))
+                                                        }
+                                                        placeholder="Lower"
+                                                    />
                                                 </div>
-                                                <div className="flex justify-end">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        onClick={() => removeResult(index)}
-                                                    >
-                                                        <X className="h-4 w-4" />
-                                                    </Button>
+                                                <div>
+                                                    <Label className="text-xs">Upper Range</Label>
+                                                    <Input
+                                                        value={entry.upperRange}
+                                                        onChange={(e) =>
+                                                            setResults((prev) => ({
+                                                                ...prev,
+                                                                [test.id || ""]: {
+                                                                    ...entry,
+                                                                    upperRange: e.target.value
+                                                                }
+                                                            }))
+                                                        }
+                                                        placeholder="Upper"
+                                                    />
                                                 </div>
                                             </div>
-                                        ))}
-                                    </div>
-                                </ScrollArea>
-
-                                {results.length === 0 && (
-                                    <div className="text-center py-8 text-muted-foreground">
-                                        <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
-                                        <p>No results added yet</p>
-                                        <Button variant="outline" size="sm" className="mt-2" onClick={addResultRow}>
-                                            Add First Result
-                                        </Button>
-                                    </div>
-                                )}
-
-                                <div>
-                                    <Label>Upload Report (Optional)</Label>
-                                    <div className="mt-1 border-2 border-dashed border-border rounded-lg p-4 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                                        <input
-                                            type="file"
-                                            id="report"
-                                            className="hidden"
-                                            accept=".pdf,.jpg,.png"
-                                            onChange={(e) => setUploadedFile(e.target.files?.[0] || null)}
-                                        />
-                                        <label htmlFor="report" className="cursor-pointer">
-                                            <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-1" />
-                                            {uploadedFile ? (
-                                                <p className="text-sm font-medium">{uploadedFile.name}</p>
-                                            ) : (
-                                                <p className="text-sm text-muted-foreground">
-                                                    Click to upload PDF or image
-                                                </p>
-                                            )}
-                                        </label>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <Label>Result Notes</Label>
-                                    <Textarea
-                                        value={resultNotes}
-                                        onChange={(e) => setResultNotes(e.target.value)}
-                                        placeholder="Add any notes or observations..."
-                                        rows={3}
-                                        className="mt-1"
-                                    />
-                                </div>
-
-                                <Button
-                                    className="w-full"
-                                    onClick={submitResults}
-                                    disabled={saving || results.length === 0}
-                                >
-                                    {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    <Save className="h-4 w-4 mr-2" />
-                                    Submit Results
-                                </Button>
+                                            <div>
+                                                <Label className="text-xs">Interpretation</Label>
+                                                <Textarea
+                                                    value={entry.interpretation}
+                                                    onChange={(e) =>
+                                                        setResults((prev) => ({
+                                                            ...prev,
+                                                            [test.id || ""]: {
+                                                                ...entry,
+                                                                interpretation: e.target.value
+                                                            }
+                                                        }))
+                                                    }
+                                                    rows={2}
+                                                />
+                                            </div>
+                                            <div className="flex flex-wrap gap-2">
+                                                <Button
+                                                    onClick={() =>
+                                                        submitResultMutation.mutate({
+                                                            testId: test.id || "",
+                                                            entry
+                                                        })
+                                                    }
+                                                    disabled={submitResultMutation.isPending}
+                                                >
+                                                    {submitResultMutation.isPending ? (
+                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                    ) : (
+                                                        <Save className="h-4 w-4 mr-2" />
+                                                    )}
+                                                    Save Result
+                                                </Button>
+                                                <div>
+                                                    <label className="inline-flex items-center gap-2 cursor-pointer">
+                                                        <input
+                                                            type="file"
+                                                            className="hidden"
+                                                            accept=".pdf,.jpg,.png"
+                                                            onChange={(e) => {
+                                                                const file = e.target.files?.[0];
+                                                                if (file && test.id) {
+                                                                    uploadMutation.mutate({ testId: test.id, file });
+                                                                }
+                                                            }}
+                                                        />
+                                                        <Upload className="h-4 w-4" />
+                                                        Upload Report
+                                                    </label>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
                             </div>
-                        )}
+                        </ScrollArea>
+
+                        <div className="mt-4">
+                            <Label>Result Notes</Label>
+                            <Textarea
+                                value={resultNotes}
+                                onChange={(e) => setResultNotes(e.target.value)}
+                                placeholder="Additional notes..."
+                                rows={3}
+                                className="mt-1"
+                            />
+                        </div>
                     </CardContent>
                 </Card>
             </div>

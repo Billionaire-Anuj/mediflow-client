@@ -1,39 +1,63 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { AppointmentService, PatientService, type AppointmentDto, type AppointmentDiagnosticsDto, type AppointmentMedicationsDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { mockAppointments } from "@/mock/appointments";
-import { mockEncounters } from "@/mock/encounters";
-import { mockPrescriptions } from "@/mock/prescriptions";
-import { mockLabRequests } from "@/mock/labRequests";
 import { ArrowLeft, User, FileText, Pill, FlaskConical, Calendar } from "lucide-react";
 import { format } from "date-fns";
+import { combineDateAndTime } from "@/lib/datetime";
+
+interface PrescriptionSummary {
+    appointment: AppointmentDto;
+    medication: AppointmentMedicationsDto;
+}
+
+interface LabSummary {
+    appointment: AppointmentDto;
+    diagnostics: AppointmentDiagnosticsDto;
+}
 
 export default function DoctorPatientDetail() {
     const { id } = useParams<{ id: string }>();
-    const [loading, setLoading] = useState(true);
-    const [patient, setPatient] = useState<{ id: string; name: string } | null>(null);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const apt = mockAppointments.find((a) => a.patientId === id);
-            if (apt) {
-                setPatient({ id: apt.patientId, name: apt.patientName });
-            }
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, [id]);
+    const { data: patientProfile, isLoading: patientLoading } = useQuery({
+        queryKey: ["patient-profile", id],
+        enabled: !!id,
+        queryFn: async () => PatientService.getPatientProfileById({ patientId: id! })
+    });
 
-    const encounters = mockEncounters.filter((e) => e.patientId === id);
-    const prescriptions = mockPrescriptions.filter((p) => p.patientId === id);
-    const labRequests = mockLabRequests.filter((l) => l.patientId === id);
+    const { data: appointmentsData, isLoading: appointmentsLoading } = useQuery({
+        queryKey: ["patient-appointments", id],
+        enabled: !!id,
+        queryFn: async () => AppointmentService.getAllAppointmentsList({ patientId: id })
+    });
 
-    if (loading) {
+    const appointments = appointmentsData?.result ?? [];
+
+    const encounters = appointments.filter((apt) => apt.medicalRecords);
+
+    const prescriptions = useMemo<PrescriptionSummary[]>(() => {
+        const list: PrescriptionSummary[] = [];
+        appointments.forEach((apt) => {
+            (apt.medications || []).forEach((med) => list.push({ appointment: apt, medication: med }));
+        });
+        return list;
+    }, [appointments]);
+
+    const labs = useMemo<LabSummary[]>(() => {
+        const list: LabSummary[] = [];
+        appointments.forEach((apt) => {
+            (apt.diagnostics || []).forEach((diag) => list.push({ appointment: apt, diagnostics: diag }));
+        });
+        return list;
+    }, [appointments]);
+
+    if (patientLoading || appointmentsLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Patient Details" />
@@ -42,7 +66,7 @@ export default function DoctorPatientDetail() {
         );
     }
 
-    if (!patient) {
+    if (!patientProfile?.result) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Patient Not Found" />
@@ -53,6 +77,8 @@ export default function DoctorPatientDetail() {
         );
     }
 
+    const patient = patientProfile.result;
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="flex items-center gap-4">
@@ -61,10 +87,9 @@ export default function DoctorPatientDetail() {
                         <ArrowLeft className="h-5 w-5" />
                     </Link>
                 </Button>
-                <PageHeader title={patient.name} />
+                <PageHeader title={patient.name || "Patient"} />
             </div>
 
-            {/* Patient Summary */}
             <Card>
                 <CardContent className="p-6">
                     <div className="flex items-center gap-4">
@@ -79,7 +104,6 @@ export default function DoctorPatientDetail() {
                 </CardContent>
             </Card>
 
-            {/* Tabs */}
             <Tabs defaultValue="encounters" className="space-y-4">
                 <TabsList>
                     <TabsTrigger value="encounters" className="gap-2">
@@ -92,44 +116,54 @@ export default function DoctorPatientDetail() {
                     </TabsTrigger>
                     <TabsTrigger value="labs" className="gap-2">
                         <FlaskConical className="h-4 w-4" />
-                        Labs ({labRequests.length})
+                        Labs ({labs.length})
                     </TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="encounters" className="space-y-4">
-                    {encounters.map((enc) => (
-                        <Card key={enc.id}>
-                            <CardContent className="p-4">
-                                <div className="flex items-start justify-between">
-                                    <div>
-                                        <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
-                                            <Calendar className="h-4 w-4" />
-                                            {format(new Date(enc.dateTime), "MMM d, yyyy")}
+                    {encounters.map((enc) => {
+                        const start = combineDateAndTime(enc.timeslot?.date, enc.timeslot?.startTime);
+                        return (
+                            <Card key={enc.id}>
+                                <CardContent className="p-4">
+                                    <div className="flex items-start justify-between">
+                                        <div>
+                                            <div className="flex items-center gap-2 text-sm text-muted-foreground mb-1">
+                                                <Calendar className="h-4 w-4" />
+                                                {start ? format(start, "MMM d, yyyy") : ""}
+                                            </div>
+                                            <h3 className="font-medium">{enc.medicalRecords?.diagnosis}</h3>
+                                            <p className="text-sm text-muted-foreground mt-1">
+                                                {enc.medicalRecords?.notes}
+                                            </p>
                                         </div>
-                                        <h3 className="font-medium">{enc.diagnosis}</h3>
-                                        <p className="text-sm text-muted-foreground mt-1">{enc.notes}</p>
                                     </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    ))}
+                                </CardContent>
+                            </Card>
+                        );
+                    })}
                 </TabsContent>
 
                 <TabsContent value="prescriptions" className="space-y-4">
                     {prescriptions.map((rx) => (
-                        <Card key={rx.id}>
+                        <Card key={rx.medication.id}>
                             <CardContent className="p-4">
                                 <div className="flex items-start justify-between mb-2">
                                     <span className="text-sm text-muted-foreground">
-                                        {format(new Date(rx.createdAt), "MMM d, yyyy")}
+                                        {rx.appointment.bookedDate
+                                            ? format(new Date(rx.appointment.bookedDate), "MMM d, yyyy")
+                                            : ""}
                                     </span>
-                                    <StatusBadge variant={getStatusVariant(rx.status)}>{rx.status}</StatusBadge>
+                                    <StatusBadge variant={getStatusVariant(rx.medication.status || "pending")}
+                                    >
+                                        {rx.medication.status}
+                                    </StatusBadge>
                                 </div>
                                 <div className="space-y-2">
-                                    {rx.items.map((item) => (
+                                    {(rx.medication.drugs || []).map((item) => (
                                         <div key={item.id} className="p-2 bg-accent/50 rounded">
                                             <p className="font-medium">
-                                                {item.medicineName} {item.dosage}
+                                                {item.medicine?.title} {item.dose}
                                             </p>
                                             <p className="text-sm text-muted-foreground">
                                                 {item.frequency} • {item.duration}
@@ -143,19 +177,24 @@ export default function DoctorPatientDetail() {
                 </TabsContent>
 
                 <TabsContent value="labs" className="space-y-4">
-                    {labRequests.map((lab) => (
-                        <Card key={lab.id}>
+                    {labs.map((lab) => (
+                        <Card key={lab.diagnostics.id}>
                             <CardContent className="p-4">
                                 <div className="flex items-start justify-between mb-2">
                                     <span className="text-sm text-muted-foreground">
-                                        {format(new Date(lab.createdAt), "MMM d, yyyy")}
+                                        {lab.appointment.bookedDate
+                                            ? format(new Date(lab.appointment.bookedDate), "MMM d, yyyy")
+                                            : ""}
                                     </span>
-                                    <StatusBadge variant={getStatusVariant(lab.status)}>{lab.status}</StatusBadge>
+                                    <StatusBadge variant={getStatusVariant(lab.diagnostics.status || "scheduled")}
+                                    >
+                                        {lab.diagnostics.status}
+                                    </StatusBadge>
                                 </div>
                                 <div className="flex flex-wrap gap-2">
-                                    {lab.tests.map((test) => (
+                                    {(lab.diagnostics.diagnosticTests || []).map((test) => (
                                         <span key={test.id} className="px-2 py-1 bg-accent rounded text-sm">
-                                            {test.name}
+                                            {test.diagnosticTest?.title}
                                         </span>
                                     ))}
                                 </div>

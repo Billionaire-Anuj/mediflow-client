@@ -1,59 +1,67 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { AppointmentService, DoctorService } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { mockAppointments } from "@/mock/appointments";
 import { Search, User, Calendar, FileText } from "lucide-react";
 import { format } from "date-fns";
+import { combineDateAndTime } from "@/lib/datetime";
 
 interface PatientSummary {
     id: string;
     name: string;
-    lastVisit: string;
+    lastVisit?: Date;
     totalVisits: number;
 }
 
 export default function DoctorPatients() {
-    const [loading, setLoading] = useState(true);
-    const [patients, setPatients] = useState<PatientSummary[]>([]);
     const [searchQuery, setSearchQuery] = useState("");
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            // Extract unique patients from appointments
-            const doctorAppointments = mockAppointments.filter((a) => a.doctorId === "doctor-1");
-            const patientMap = new Map<string, PatientSummary>();
+    const { data: doctorProfile } = useQuery({
+        queryKey: ["doctor-profile"],
+        queryFn: async () => DoctorService.getDoctorProfile()
+    });
 
-            doctorAppointments.forEach((apt) => {
-                const existing = patientMap.get(apt.patientId);
-                if (!existing) {
-                    patientMap.set(apt.patientId, {
-                        id: apt.patientId,
-                        name: apt.patientName,
-                        lastVisit: apt.dateTime,
-                        totalVisits: 1
-                    });
-                } else {
-                    existing.totalVisits += 1;
-                    if (new Date(apt.dateTime) > new Date(existing.lastVisit)) {
-                        existing.lastVisit = apt.dateTime;
-                    }
+    const doctorId = doctorProfile?.result?.id;
+
+    const { data: appointmentsData, isLoading } = useQuery({
+        queryKey: ["doctor-appointments", doctorId],
+        enabled: !!doctorId,
+        queryFn: async () => AppointmentService.getAllAppointmentsList({ doctorId })
+    });
+
+    const patients = useMemo<PatientSummary[]>(() => {
+        const list = new Map<string, PatientSummary>();
+        (appointmentsData?.result ?? []).forEach((apt) => {
+            const patient = apt.patient;
+            if (!patient?.id) return;
+            const visitDate = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime);
+            const existing = list.get(patient.id);
+            if (!existing) {
+                list.set(patient.id, {
+                    id: patient.id,
+                    name: patient.name || "Patient",
+                    lastVisit: visitDate || undefined,
+                    totalVisits: 1
+                });
+            } else {
+                existing.totalVisits += 1;
+                if (visitDate && (!existing.lastVisit || visitDate > existing.lastVisit)) {
+                    existing.lastVisit = visitDate;
                 }
-            });
-
-            setPatients(Array.from(patientMap.values()));
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, []);
+            }
+        });
+        return Array.from(list.values());
+    }, [appointmentsData]);
 
     const filteredPatients = patients.filter((p) => p.name.toLowerCase().includes(searchQuery.toLowerCase()));
 
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Patients" />
@@ -100,7 +108,10 @@ export default function DoctorPatients() {
                                         <h3 className="font-medium truncate">{patient.name}</h3>
                                         <div className="flex items-center gap-2 text-sm text-muted-foreground mt-1">
                                             <Calendar className="h-3 w-3" />
-                                            <span>Last: {format(new Date(patient.lastVisit), "MMM d, yyyy")}</span>
+                                            <span>
+                                                Last:{" "}
+                                                {patient.lastVisit ? format(patient.lastVisit, "MMM d, yyyy") : "N/A"}
+                                            </span>
                                         </div>
                                         <p className="text-sm text-muted-foreground">
                                             {patient.totalVisits} visit{patient.totalVisits !== 1 ? "s" : ""}

@@ -1,14 +1,18 @@
 import { Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { UserRole } from "@/mock/users";
+import { AppRole } from "@/lib/auth";
 
 interface RoleGuardProps {
-    allowedRoles: UserRole[];
+    allowedRoles: AppRole[];
     children: React.ReactNode;
 }
 
 export function RoleGuard({ allowedRoles, children }: RoleGuardProps) {
-    const { user, isAuthenticated } = useAuth();
+    const { user, isAuthenticated, isInitializing } = useAuth();
+
+    if (isInitializing) {
+        return null;
+    }
 
     if (!isAuthenticated) {
         return <Navigate to="/login" replace />;

@@ -1,93 +1,54 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppointmentMedicationsService, type AppointmentDto, type AppointmentMedicationsDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { mockPrescriptions, Prescription, PrescriptionStatus } from "@/mock/prescriptions";
-import { ArrowLeft, User, Pill, Loader2, CheckCircle } from "lucide-react";
+import { ArrowLeft, User, Pill, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 
+interface PrescriptionDetail {
+    appointment: AppointmentDto;
+    medication: AppointmentMedicationsDto;
+}
+
 export default function PharmacyPrescriptionDetail() {
     const { id } = useParams<{ id: string }>();
-    const [loading, setLoading] = useState(true);
-    const [saving, setSaving] = useState(false);
-    const [prescription, setPrescription] = useState<Prescription | null>(null);
-    const [dispensedItems, setDispensedItems] = useState<Set<string>>(new Set());
-    const [pharmacyNotes, setPharmacyNotes] = useState("");
-    const [status, setStatus] = useState<PrescriptionStatus>("pending");
+    const queryClient = useQueryClient();
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const rx = mockPrescriptions.find((r) => r.id === id);
-            setPrescription(rx || null);
-            if (rx) {
-                setStatus(rx.status);
-                setPharmacyNotes(rx.pharmacyNotes || "");
-                const dispensed = new Set(rx.items.filter((i) => i.dispensed).map((i) => i.id));
-                setDispensedItems(dispensed);
+    const { data, isLoading } = useQuery({
+        queryKey: ["pharmacy-prescriptions"],
+        queryFn: async () => AppointmentMedicationsService.getAllAppointmentMedicationsList({})
+    });
+
+    const prescription = useMemo<PrescriptionDetail | null>(() => {
+        const appointments = data?.result ?? [];
+        for (const apt of appointments) {
+            for (const med of apt.medications || []) {
+                if (med.id === id) {
+                    return { appointment: apt, medication: med };
+                }
             }
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, [id]);
-
-    const toggleDispensed = (itemId: string) => {
-        setDispensedItems((prev) => {
-            const next = new Set(prev);
-            if (next.has(itemId)) {
-                next.delete(itemId);
-            } else {
-                next.add(itemId);
-            }
-            return next;
-        });
-    };
-
-    const handleSave = async () => {
-        if (!prescription) return;
-
-        setSaving(true);
-        await new Promise((resolve) => setTimeout(resolve, 600));
-
-        const allDispensed = prescription.items.every((item) => dispensedItems.has(item.id));
-        const someDispensed = prescription.items.some((item) => dispensedItems.has(item.id));
-
-        let newStatus: PrescriptionStatus = status;
-        if (allDispensed) {
-            newStatus = "dispensed";
-        } else if (someDispensed) {
-            newStatus = "partially-dispensed";
         }
+        return null;
+    }, [data, id]);
 
-        setPrescription((prev) =>
-            prev
-                ? {
-                      ...prev,
-                      status: newStatus,
-                      pharmacyNotes,
-                      items: prev.items.map((item) => ({
-                          ...item,
-                          dispensed: dispensedItems.has(item.id)
-                      })),
-                      dispensedBy: "David Thompson",
-                      dispensedAt: new Date().toISOString()
-                  }
-                : null
-        );
+    const dispenseMutation = useMutation({
+        mutationFn: async () => AppointmentMedicationsService.dispenseAppointmentMedications({
+            appointmentMedicationsId: id!
+        }),
+        onSuccess: () => {
+            toast.success("Prescription dispensed successfully");
+            queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
+        },
+        onError: () => toast.error("Failed to dispense prescription")
+    });
 
-        setStatus(newStatus);
-        toast.success("Prescription updated successfully");
-        setSaving(false);
-    };
-
-    if (loading) {
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Prescription" />
@@ -107,6 +68,8 @@ export default function PharmacyPrescriptionDetail() {
         );
     }
 
+    const { appointment, medication } = prescription;
+
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="flex items-center gap-4">
@@ -116,13 +79,12 @@ export default function PharmacyPrescriptionDetail() {
                     </Link>
                 </Button>
                 <PageHeader
-                    title={`Prescription #${prescription.id.slice(-4)}`}
-                    description={format(new Date(prescription.createdAt), "MMMM d, yyyy")}
+                    title={`Prescription #${medication.id?.slice(-4)}`}
+                    description={appointment.bookedDate ? format(new Date(appointment.bookedDate), "MMMM d, yyyy") : ""}
                 />
             </div>
 
             <div className="grid gap-6 lg:grid-cols-3">
-                {/* Prescription Info */}
                 <Card>
                     <CardHeader>
                         <CardTitle className="text-base">Prescription Details</CardTitle>
@@ -133,7 +95,7 @@ export default function PharmacyPrescriptionDetail() {
                                 <User className="h-6 w-6 text-primary" />
                             </div>
                             <div>
-                                <p className="font-medium">{prescription.patientName}</p>
+                                <p className="font-medium">{appointment.patient?.name}</p>
                                 <p className="text-sm text-muted-foreground">Patient</p>
                             </div>
                         </div>
@@ -141,111 +103,59 @@ export default function PharmacyPrescriptionDetail() {
                         <div className="space-y-2 text-sm">
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Prescribed by</span>
-                                <span>{prescription.doctorName}</span>
+                                <span>{appointment.doctor?.name}</span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Date</span>
-                                <span>{format(new Date(prescription.createdAt), "MMM d, yyyy")}</span>
+                                <span>
+                                    {appointment.bookedDate ? format(new Date(appointment.bookedDate), "MMM d, yyyy") : ""}
+                                </span>
                             </div>
                             <div className="flex justify-between">
                                 <span className="text-muted-foreground">Status</span>
-                                <StatusBadge variant={getStatusVariant(status)}>{status}</StatusBadge>
+                                <StatusBadge variant={getStatusVariant(medication.status || "pending")}>
+                                    {medication.status}
+                                </StatusBadge>
                             </div>
                         </div>
-
-                        {prescription.dispensedBy && (
-                            <div className="pt-4 border-t text-sm text-muted-foreground">
-                                Dispensed by {prescription.dispensedBy}
-                                {prescription.dispensedAt && (
-                                    <> on {format(new Date(prescription.dispensedAt), "MMM d, h:mm a")}</>
-                                )}
-                            </div>
-                        )}
                     </CardContent>
                 </Card>
 
-                {/* Medications & Dispense Panel */}
                 <Card className="lg:col-span-2">
                     <CardHeader>
                         <CardTitle className="text-base">Medications</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-3">
-                            {prescription.items.map((item) => (
-                                <div
-                                    key={item.id}
-                                    className={`flex items-start justify-between p-4 border rounded-lg transition-colors ${
-                                        dispensedItems.has(item.id)
-                                            ? "bg-status-success-bg border-status-success/30"
-                                            : ""
-                                    }`}
-                                >
-                                    <div className="flex items-start gap-3">
-                                        <Checkbox
-                                            id={item.id}
-                                            checked={dispensedItems.has(item.id)}
-                                            onCheckedChange={() => toggleDispensed(item.id)}
-                                            disabled={status === "dispensed"}
-                                        />
-                                        <div>
-                                            <label htmlFor={item.id} className="font-medium cursor-pointer">
-                                                {item.medicineName} {item.dosage}
-                                            </label>
-                                            <p className="text-sm text-muted-foreground">
-                                                {item.frequency} • {item.duration}
+                            {(medication.drugs || []).map((item) => (
+                                <div key={item.id} className="flex items-start justify-between p-4 border rounded-lg">
+                                    <div>
+                                        <p className="font-medium">
+                                            {item.medicine?.title} {item.dose}
+                                        </p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {item.frequency} • {item.duration}
+                                        </p>
+                                        {item.instructions && (
+                                            <p className="text-xs text-muted-foreground mt-1 italic">
+                                                {item.instructions}
                                             </p>
-                                            <p className="text-sm text-muted-foreground">Quantity: {item.quantity}</p>
-                                            {item.instructions && (
-                                                <p className="text-xs text-muted-foreground mt-1 italic">
-                                                    {item.instructions}
-                                                </p>
-                                            )}
-                                        </div>
+                                        )}
                                     </div>
-                                    {dispensedItems.has(item.id) && (
-                                        <CheckCircle className="h-5 w-5 text-status-success flex-shrink-0" />
-                                    )}
                                 </div>
                             ))}
                         </div>
 
-                        <div className="pt-4 border-t">
-                            <Label>Status</Label>
-                            <Select
-                                value={status}
-                                onValueChange={(v) => setStatus(v as PrescriptionStatus)}
-                                disabled={status === "dispensed"}
-                            >
-                                <SelectTrigger className="mt-1">
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent className="bg-popover">
-                                    <SelectItem value="pending">Pending</SelectItem>
-                                    <SelectItem value="partially-dispensed">Partially Dispensed</SelectItem>
-                                    <SelectItem value="dispensed">Dispensed</SelectItem>
-                                </SelectContent>
-                            </Select>
-                        </div>
-
                         <div>
-                            <Label>Pharmacy Notes</Label>
-                            <Textarea
-                                value={pharmacyNotes}
-                                onChange={(e) => setPharmacyNotes(e.target.value)}
-                                placeholder="Add any notes about dispensing..."
-                                rows={3}
-                                className="mt-1"
-                                disabled={status === "dispensed"}
-                            />
+                            <p className="text-sm text-muted-foreground">Pharmacy Notes</p>
+                            <p className="text-sm">{medication.notes || "No notes"}</p>
                         </div>
 
-                        {status !== "dispensed" && (
-                            <Button className="w-full" onClick={handleSave} disabled={saving}>
-                                {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                <Pill className="h-4 w-4 mr-2" />
-                                Save & Update
-                            </Button>
-                        )}
+                        <Button className="w-full" onClick={() => dispenseMutation.mutate()} disabled={dispenseMutation.isPending}>
+                            {dispenseMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                            <Pill className="h-4 w-4 mr-2" />
+                            Mark as Dispensed
+                        </Button>
                     </CardContent>
                 </Card>
             </div>

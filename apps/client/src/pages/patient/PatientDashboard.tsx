@@ -1,32 +1,46 @@
-import { useState, useEffect } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
+import { AppointmentService, PatientService } from "@mediflow/mediflow-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { mockAppointments } from "@/mock/appointments";
 import { Calendar, FileText, Stethoscope, Bell, ArrowRight } from "lucide-react";
 import { format } from "date-fns";
+import { combineDateAndTime } from "@/lib/datetime";
 
 export default function PatientDashboard() {
     const { user } = useAuth();
-    const [loading, setLoading] = useState(true);
-    const [upcomingAppointment, setUpcomingAppointment] = useState<(typeof mockAppointments)[0] | null>(null);
 
-    useEffect(() => {
-        const timer = setTimeout(() => {
-            const upcoming = mockAppointments
-                .filter((a) => a.patientId === "patient-1" && a.status === "booked")
-                .sort((a, b) => new Date(a.dateTime).getTime() - new Date(b.dateTime).getTime())[0];
-            setUpcomingAppointment(upcoming || null);
-            setLoading(false);
-        }, 400);
-        return () => clearTimeout(timer);
-    }, []);
+    const { data: profileData } = useQuery({
+        queryKey: ["patient-profile"],
+        queryFn: async () => PatientService.getPatientProfile()
+    });
 
-    if (loading) {
+    const patientId = profileData?.result?.id;
+
+    const { data: appointmentsData, isLoading } = useQuery({
+        queryKey: ["patient-appointments", patientId],
+        enabled: !!patientId,
+        queryFn: async () => AppointmentService.getAllAppointmentsList({ patientId })
+    });
+
+    const upcomingAppointment = useMemo(() => {
+        const appointments = appointmentsData?.result ?? [];
+        const upcoming = appointments
+            .map((apt) => ({
+                apt,
+                start: combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime)
+            }))
+            .filter((item) => item.start)
+            .sort((a, b) => (a.start!.getTime() || 0) - (b.start!.getTime() || 0));
+        return upcoming[0]?.apt || null;
+    }, [appointmentsData]);
+
+    if (isLoading) {
         return (
             <div className="space-y-6">
                 <PageHeader title="Dashboard" />
@@ -46,7 +60,6 @@ export default function PatientDashboard() {
                 description="Manage your healthcare from one place"
             />
 
-            {/* Quick Actions */}
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
                 <Link to="/patient/doctors">
                     <Card className="card-interactive h-full">
@@ -98,14 +111,13 @@ export default function PatientDashboard() {
                             </div>
                             <div>
                                 <p className="font-medium">Notifications</p>
-                                <p className="text-sm text-muted-foreground">2 unread</p>
+                                <p className="text-sm text-muted-foreground">Stay updated</p>
                             </div>
                         </CardContent>
                     </Card>
                 </Link>
             </div>
 
-            {/* Upcoming Appointment */}
             {upcomingAppointment && (
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between">
@@ -123,19 +135,29 @@ export default function PatientDashboard() {
                                     <Stethoscope className="h-6 w-6 text-primary" />
                                 </div>
                                 <div>
-                                    <p className="font-medium">{upcomingAppointment.doctorName}</p>
-                                    <p className="text-sm text-muted-foreground">{upcomingAppointment.department}</p>
+                                    <p className="font-medium">{upcomingAppointment.doctor?.name}</p>
+                                    <p className="text-sm text-muted-foreground">
+                                        {(upcomingAppointment.doctor?.specializations || [])
+                                            .map((spec) => spec.title)
+                                            .filter(Boolean)
+                                            .join(", ") || "General Practitioner"}
+                                    </p>
                                 </div>
                             </div>
                             <div className="text-right">
-                                <p className="font-medium">
-                                    {format(new Date(upcomingAppointment.dateTime), "MMM d, yyyy")}
-                                </p>
-                                <p className="text-sm text-muted-foreground">
-                                    {format(new Date(upcomingAppointment.dateTime), "h:mm a")}
-                                </p>
+                                {upcomingAppointment.timeslot?.date && (
+                                    <p className="font-medium">
+                                        {format(new Date(upcomingAppointment.timeslot.date), "MMM d, yyyy")}
+                                    </p>
+                                )}
+                                {upcomingAppointment.timeslot?.startTime && (
+                                    <p className="text-sm text-muted-foreground">
+                                        {upcomingAppointment.timeslot.startTime}
+                                    </p>
+                                )}
                             </div>
-                            <StatusBadge variant={getStatusVariant(upcomingAppointment.status)}>
+                            <StatusBadge variant={getStatusVariant(upcomingAppointment.status || "scheduled")}
+                            >
                                 {upcomingAppointment.status}
                             </StatusBadge>
                         </div>
