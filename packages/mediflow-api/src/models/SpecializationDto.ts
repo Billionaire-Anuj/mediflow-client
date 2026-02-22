@@ -2,11 +2,9 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type TimeslotDto = {
+export type SpecializationDto = {
     id?: string;
     isActive?: boolean;
-    date?: string;
-    startTime?: string;
-    endTime?: string;
-    isBooked?: boolean;
+    title?: string | null;
+    description?: string | null;
 };

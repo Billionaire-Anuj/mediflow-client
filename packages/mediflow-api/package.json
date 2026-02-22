@@ -10,9 +10,9 @@
     "clean": "rimraf dist .turbo tsconfig.tsbuildinfo",
     "clean-all": "pnpm run clean && rimraf node_modules",
     "test": "echo \"No tests available.\"",
-    "api-generation@mac": "./node_modules/.bin/openapi --input http://localhost:5075/swagger/v1/swagger.json --client axios --useOptions --output ./src",
-    "api-generation@windows": "powershell -File node_modules/.bin/openapi.ps1 --input http://localhost:5075/swagger/v1/swagger.json --client axios --useOptions --output ./src",
-    "api-generation@localhost": "powershell -ExecutionPolicy Bypass -File ./node_modules/.bin/openapi.ps1 --input http://localhost:5075/swagger/v1/swagger.json --client axios --useOptions --output ./src"
+    "api-generation@mac": "./node_modules/.bin/openapi --input http://localhost:5075/openapi/v1.json --client axios --useOptions --output ./src",
+    "api-generation@windows": "powershell -File node_modules/.bin/openapi.ps1 --input http://localhost:5075/openapi/v1.json --client axios --useOptions --output ./src",
+    "api-generation@localhost": "powershell -ExecutionPolicy Bypass -File ./node_modules/.bin/openapi.ps1 --input http://localhost:5075/openapi/v1.json --client axios --useOptions --output ./src"
   },
   "devDependencies": {
     "@mediflow/tsconfig": "workspace:^",

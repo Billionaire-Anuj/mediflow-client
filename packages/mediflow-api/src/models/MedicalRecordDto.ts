@@ -2,11 +2,11 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
-export type TimeslotDto = {
+export type MedicalRecordDto = {
     id?: string;
     isActive?: boolean;
-    date?: string;
-    startTime?: string;
-    endTime?: string;
-    isBooked?: boolean;
+    diagnosis?: string | null;
+    treatment?: string | null;
+    prescriptions?: string | null;
+    notes?: string | null;
 };

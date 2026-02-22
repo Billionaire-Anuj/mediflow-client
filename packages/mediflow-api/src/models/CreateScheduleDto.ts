@@ -3,14 +3,11 @@
 /* tslint:disable */
 /* eslint-disable */
 import type { DayOfWeek } from "./DayOfWeek";
-export type ScheduleDto = {
-    id?: string;
-    isActive?: boolean;
+export type CreateScheduleDto = {
     dayOfWeek?: DayOfWeek;
     startTime?: string;
     endTime?: string;
     slotDurationInMinutes?: number;
-    isAvailable?: boolean;
     validStartDate?: string;
     validEndDate?: string;
     notes?: string | null;
