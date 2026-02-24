@@ -45,6 +45,7 @@ export default function PatientDoctors() {
         queryFn: async () => SpecializationService.getAllSpecializationsList({})
     });
 
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     const doctors = doctorsData?.result ?? [];
     const specializationOptions = specializationsData?.result ?? [];
 
@@ -73,7 +74,7 @@ export default function PatientDoctors() {
         queryKey: ["timeslots", bookingDoctor?.id, selectedDate],
         enabled: !!bookingDoctor && !!selectedDateRange,
         queryFn: async () =>
-            DoctorService.getDoctorTimeslots({
+            DoctorService.getDoctorTimeslotsById({
                 doctorId: bookingDoctor!.id || "",
                 startDate: selectedDateRange!.startDate,
                 endDate: selectedDateRange!.endDate
@@ -294,7 +295,8 @@ export default function PatientDoctors() {
                                                         .join(", ") || "General Practitioner"}
                                                 </p>
                                             </div>
-                                            <StatusBadge variant={getStatusVariant(doctor.isActive ? "active" : "inactive")}
+                                            <StatusBadge
+                                                variant={getStatusVariant(doctor.isActive ? "active" : "inactive")}
                                             >
                                                 {doctor.isActive ? "Active" : "Inactive"}
                                             </StatusBadge>
@@ -304,12 +306,18 @@ export default function PatientDoctors() {
                                             <div className="flex items-center gap-1 mt-2 text-sm">
                                                 <Clock className="h-4 w-4 text-muted-foreground" />
                                                 <span className="text-muted-foreground">Availability: </span>
-                                                <span className="text-foreground font-medium">{doctor.schedules.length} days/week</span>
+                                                <span className="text-foreground font-medium">
+                                                    {doctor.schedules.length} days/week
+                                                </span>
                                             </div>
                                         )}
 
                                         <div className="flex gap-2 mt-4">
-                                            <Button variant="outline" size="sm" onClick={() => setSelectedDoctor(doctor)}>
+                                            <Button
+                                                variant="outline"
+                                                size="sm"
+                                                onClick={() => setSelectedDoctor(doctor)}
+                                            >
                                                 View Profile
                                             </Button>
                                             <Button size="sm" onClick={() => setBookingDoctor(doctor)}>
@@ -365,7 +373,10 @@ export default function PatientDoctors() {
                                     <h4 className="font-medium mb-2">Schedule</h4>
                                     <div className="flex flex-wrap gap-2">
                                         {selectedDoctor.schedules.map((s) => (
-                                            <span key={s.id || s.dayOfWeek} className="px-2 py-1 bg-accent rounded text-xs">
+                                            <span
+                                                key={s.id || s.dayOfWeek}
+                                                className="px-2 py-1 bg-accent rounded text-xs"
+                                            >
                                                 {s.dayOfWeek}: {s.startTime} - {s.endTime}
                                             </span>
                                         ))}
@@ -425,7 +436,9 @@ export default function PatientDoctors() {
                                     <label className="text-sm font-medium">Time</label>
                                     <Select value={selectedTimeslotId} onValueChange={setSelectedTimeslotId}>
                                         <SelectTrigger className="mt-1">
-                                            <SelectValue placeholder={timeslotsLoading ? "Loading..." : "Select time"} />
+                                            <SelectValue
+                                                placeholder={timeslotsLoading ? "Loading..." : "Select time"}
+                                            />
                                         </SelectTrigger>
                                         <SelectContent className="bg-popover">
                                             {availableTimeslots.map((slot) => {

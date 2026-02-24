@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     DiagnosticTestService,
@@ -224,52 +224,50 @@ export default function AdminConfig() {
 
     const renderList = (
         type: EditType,
-        items: Array<
-            SpecializationDto | DiagnosticTypeDto | DiagnosticTestDto | MedicationTypeDto | MedicineDto
-        >
+        items: Array<SpecializationDto | DiagnosticTypeDto | DiagnosticTestDto | MedicationTypeDto | MedicineDto>
     ) => (
         <div className="space-y-2">
-            {items.map((item: any) => (
-                <div key={item.id} className="flex items-center justify-between p-2 bg-accent/50 rounded">
-                    <div>
-                        <p className="text-sm font-medium">{item.title}</p>
-                        {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
+            {items.map(
+                (item: SpecializationDto | DiagnosticTypeDto | DiagnosticTestDto | MedicationTypeDto | MedicineDto) => (
+                    <div key={item.id} className="flex items-center justify-between p-2 bg-accent/50 rounded">
+                        <div>
+                            <p className="text-sm font-medium">{item.title}</p>
+                            {item.description && <p className="text-xs text-muted-foreground">{item.description}</p>}
+                        </div>
+                        <div className="flex gap-1">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8"
+                                onClick={() =>
+                                    openEditor({
+                                        type,
+                                        mode: "edit",
+                                        id: item.id as string,
+                                        title: item.title as string,
+                                        description: item.description as string,
+                                        diagnosticTypeId: (item as DiagnosticTestDto).diagnosticType?.id,
+                                        medicationTypeId: (item as MedicineDto).medicationType?.id,
+                                        specimen: (item as DiagnosticTestDto).specimen as string,
+                                        format: (item as MedicineDto).format as string
+                                    })
+                                }
+                            >
+                                <Edit className="h-3 w-3" />
+                            </Button>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-8 w-8 text-destructive"
+                                onClick={() => item.id && toggleMutation.mutate({ type, id: item.id })}
+                            >
+                                <Trash2 className="h-3 w-3" />
+                            </Button>
+                        </div>
                     </div>
-                    <div className="flex gap-1">
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8"
-                            onClick={() =>
-                                openEditor({
-                                    type,
-                                    mode: "edit",
-                                    id: item.id,
-                                    title: item.title,
-                                    description: item.description,
-                                    diagnosticTypeId: item.diagnosticType?.id,
-                                    medicationTypeId: item.medicationType?.id,
-                                    specimen: item.specimen,
-                                    format: item.format
-                                })
-                            }
-                        >
-                            <Edit className="h-3 w-3" />
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive"
-                            onClick={() => item.id && toggleMutation.mutate({ type, id: item.id })}
-                        >
-                            <Trash2 className="h-3 w-3" />
-                        </Button>
-                    </div>
-                </div>
-            ))}
-            {items.length === 0 && (
-                <div className="text-sm text-muted-foreground">No records found.</div>
+                )
             )}
+            {items.length === 0 && <div className="text-sm text-muted-foreground">No records found.</div>}
         </div>
     );
 
@@ -396,9 +394,7 @@ export default function AdminConfig() {
                                 <Input
                                     value={editingItem.title || ""}
                                     onChange={(e) =>
-                                        setEditingItem((prev) =>
-                                            prev ? { ...prev, title: e.target.value } : prev
-                                        )
+                                        setEditingItem((prev) => (prev ? { ...prev, title: e.target.value } : prev))
                                     }
                                 />
                             </div>
@@ -494,7 +490,10 @@ export default function AdminConfig() {
                                 <Button variant="outline" onClick={() => setEditingItem(null)}>
                                     Cancel
                                 </Button>
-                                <Button onClick={handleSave} disabled={createMutation.isPending || updateMutation.isPending}>
+                                <Button
+                                    onClick={handleSave}
+                                    disabled={createMutation.isPending || updateMutation.isPending}
+                                >
                                     {(createMutation.isPending || updateMutation.isPending) && (
                                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                     )}

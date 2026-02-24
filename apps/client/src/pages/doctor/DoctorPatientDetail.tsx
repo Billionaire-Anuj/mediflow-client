@@ -1,7 +1,13 @@
 import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AppointmentService, PatientService, type AppointmentDto, type AppointmentDiagnosticsDto, type AppointmentMedicationsDto } from "@mediflow/mediflow-api";
+import {
+    AppointmentService,
+    PatientService,
+    type AppointmentDto,
+    type AppointmentDiagnosticsDto,
+    type AppointmentMedicationsDto
+} from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -154,8 +160,7 @@ export default function DoctorPatientDetail() {
                                             ? format(new Date(rx.appointment.bookedDate), "MMM d, yyyy")
                                             : ""}
                                     </span>
-                                    <StatusBadge variant={getStatusVariant(rx.medication.status || "pending")}
-                                    >
+                                    <StatusBadge variant={getStatusVariant(rx.medication.status || "pending")}>
                                         {rx.medication.status}
                                     </StatusBadge>
                                 </div>
@@ -186,8 +191,7 @@ export default function DoctorPatientDetail() {
                                             ? format(new Date(lab.appointment.bookedDate), "MMM d, yyyy")
                                             : ""}
                                     </span>
-                                    <StatusBadge variant={getStatusVariant(lab.diagnostics.status || "scheduled")}
-                                    >
+                                    <StatusBadge variant={getStatusVariant(lab.diagnostics.status || "scheduled")}>
                                         {lab.diagnostics.status}
                                     </StatusBadge>
                                 </div>

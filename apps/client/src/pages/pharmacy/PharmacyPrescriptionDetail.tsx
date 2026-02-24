@@ -1,7 +1,11 @@
 import { useMemo } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppointmentMedicationsService, type AppointmentDto, type AppointmentMedicationsDto } from "@mediflow/mediflow-api";
+import {
+    AppointmentMedicationsService,
+    type AppointmentDto,
+    type AppointmentMedicationsDto
+} from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -38,9 +42,10 @@ export default function PharmacyPrescriptionDetail() {
     }, [data, id]);
 
     const dispenseMutation = useMutation({
-        mutationFn: async () => AppointmentMedicationsService.dispenseAppointmentMedications({
-            appointmentMedicationsId: id!
-        }),
+        mutationFn: async () =>
+            AppointmentMedicationsService.dispenseAppointmentMedications({
+                appointmentMedicationsId: id!
+            }),
         onSuccess: () => {
             toast.success("Prescription dispensed successfully");
             queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
@@ -62,19 +67,21 @@ export default function PharmacyPrescriptionDetail() {
             <div className="space-y-6">
                 <PageHeader title="Prescription Not Found" />
                 <Button asChild>
-                    <Link to="/pharmacy/prescriptions">Back to Prescriptions</Link>
+                    <Link to="/pharmacist/prescriptions">Back to Prescriptions</Link>
                 </Button>
             </div>
         );
     }
 
     const { appointment, medication } = prescription;
+    const assignedPharmacist =
+        medication.pharmacist?.name || medication.pharmacist?.username || medication.pharmacist?.emailAddress;
 
     return (
         <div className="space-y-6 animate-fade-in">
             <div className="flex items-center gap-4">
                 <Button variant="ghost" size="icon" asChild>
-                    <Link to="/pharmacy/prescriptions">
+                    <Link to="/pharmacist/prescriptions">
                         <ArrowLeft className="h-5 w-5" />
                     </Link>
                 </Button>
@@ -106,9 +113,15 @@ export default function PharmacyPrescriptionDetail() {
                                 <span>{appointment.doctor?.name}</span>
                             </div>
                             <div className="flex justify-between">
+                                <span className="text-muted-foreground">Assigned Pharmacist</span>
+                                <span>{assignedPharmacist || "Unassigned"}</span>
+                            </div>
+                            <div className="flex justify-between">
                                 <span className="text-muted-foreground">Date</span>
                                 <span>
-                                    {appointment.bookedDate ? format(new Date(appointment.bookedDate), "MMM d, yyyy") : ""}
+                                    {appointment.bookedDate
+                                        ? format(new Date(appointment.bookedDate), "MMM d, yyyy")
+                                        : ""}
                                 </span>
                             </div>
                             <div className="flex justify-between">
@@ -151,7 +164,11 @@ export default function PharmacyPrescriptionDetail() {
                             <p className="text-sm">{medication.notes || "No notes"}</p>
                         </div>
 
-                        <Button className="w-full" onClick={() => dispenseMutation.mutate()} disabled={dispenseMutation.isPending}>
+                        <Button
+                            className="w-full"
+                            onClick={() => dispenseMutation.mutate()}
+                            disabled={dispenseMutation.isPending}
+                        >
                             {dispenseMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             <Pill className="h-4 w-4 mr-2" />
                             Mark as Dispensed

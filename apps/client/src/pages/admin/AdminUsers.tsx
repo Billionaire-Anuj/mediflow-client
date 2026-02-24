@@ -185,7 +185,9 @@ export default function AdminUsers() {
                                         >
                                             {selectedUser.role?.name}
                                         </span>
-                                        <StatusBadge variant={getStatusVariant(selectedUser.isActive ? "active" : "inactive")}>
+                                        <StatusBadge
+                                            variant={getStatusVariant(selectedUser.isActive ? "active" : "inactive")}
+                                        >
                                             {selectedUser.isActive ? "Active" : "Inactive"}
                                         </StatusBadge>
                                     </div>

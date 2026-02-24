@@ -1,16 +1,10 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery } from "@tanstack/react-query";
-import {
-    AppointmentService,
-    DiagnosticTestService,
-    MedicineService,
-    type DiagnosticTestDto,
-    type MedicineDto
-} from "@mediflow/mediflow-api";
+import { AppointmentService, DiagnosticTestService, MedicineService } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -438,9 +432,7 @@ export default function DoctorEncounter() {
                                                     if (checked) {
                                                         setSelectedTests((prev) => [...prev, test.id || ""]);
                                                     } else {
-                                                        setSelectedTests((prev) =>
-                                                            prev.filter((t) => t !== test.id)
-                                                        );
+                                                        setSelectedTests((prev) => prev.filter((t) => t !== test.id));
                                                     }
                                                 }}
                                             />

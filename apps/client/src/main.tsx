@@ -25,6 +25,7 @@ import PatientAppointments from "./pages/patient/PatientAppointments";
 import PatientRecords from "./pages/patient/PatientRecords";
 import PatientNotifications from "./pages/patient/PatientNotifications";
 import PatientProfile from "./pages/patient/PatientProfile";
+import AppointmentDetail from "./pages/AppointmentDetail";
 
 // Doctor pages
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
@@ -32,6 +33,8 @@ import DoctorAppointments from "./pages/doctor/DoctorAppointments";
 import DoctorPatients from "./pages/doctor/DoctorPatients";
 import DoctorPatientDetail from "./pages/doctor/DoctorPatientDetail";
 import DoctorEncounter from "./pages/doctor/DoctorEncounter";
+import DoctorProfile from "./pages/doctor/DoctorProfile";
+import DoctorSchedule from "./pages/doctor/DoctorSchedule";
 
 // Lab pages
 import LabDashboard from "./pages/lab/LabDashboard";
@@ -83,6 +86,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route path="dashboard" element={<PatientDashboard />} />
                                 <Route path="doctors" element={<PatientDoctors />} />
                                 <Route path="appointments" element={<PatientAppointments />} />
+                                <Route path="appointments/:appointmentId" element={<AppointmentDetail />} />
                                 <Route path="records" element={<PatientRecords />} />
                                 <Route path="notifications" element={<PatientNotifications />} />
                                 <Route path="profile" element={<PatientProfile />} />
@@ -93,10 +97,12 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route index element={<Navigate to="/doctor/dashboard" replace />} />
                                 <Route path="dashboard" element={<DoctorDashboard />} />
                                 <Route path="appointments" element={<DoctorAppointments />} />
+                                <Route path="appointments/:appointmentId" element={<AppointmentDetail />} />
                                 <Route path="patients" element={<DoctorPatients />} />
                                 <Route path="patient/:id" element={<DoctorPatientDetail />} />
                                 <Route path="encounter/:appointmentId" element={<DoctorEncounter />} />
-                                <Route path="profile" element={<PatientProfile />} />
+                                <Route path="profile" element={<DoctorProfile />} />
+                                <Route path="schedule" element={<DoctorSchedule />} />
                             </Route>
 
                             {/* Lab Routes */}
@@ -109,8 +115,8 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                             </Route>
 
                             {/* Pharmacy Routes */}
-                            <Route path="/pharmacy" element={<AppShell allowedRoles={["pharmacist"]} />}>
-                                <Route index element={<Navigate to="/pharmacy/dashboard" replace />} />
+                            <Route path="/pharmacist" element={<AppShell allowedRoles={["pharmacist"]} />}>
+                                <Route index element={<Navigate to="/pharmacist/dashboard" replace />} />
                                 <Route path="dashboard" element={<PharmacyDashboard />} />
                                 <Route path="prescriptions" element={<PharmacyPrescriptions />} />
                                 <Route path="prescription/:id" element={<PharmacyPrescriptionDetail />} />

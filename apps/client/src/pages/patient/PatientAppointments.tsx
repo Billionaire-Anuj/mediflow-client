@@ -16,6 +16,7 @@ import { format, isPast } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
+import { Label } from "@/components/ui/label";
 
 export default function PatientAppointments() {
     const queryClient = useQueryClient();
@@ -72,7 +73,7 @@ export default function PatientAppointments() {
         queryKey: ["reschedule-timeslots", rescheduling?.doctor?.id, rescheduleDate],
         enabled: !!rescheduling?.doctor?.id,
         queryFn: async () =>
-            DoctorService.getDoctorTimeslots({
+            DoctorService.getDoctorTimeslotsById({
                 doctorId: rescheduling!.doctor!.id || "",
                 startDate: rescheduleDate,
                 endDate: rescheduleDate
@@ -158,10 +159,7 @@ export default function PatientAppointments() {
                                 appointment.timeslot?.date,
                                 appointment.timeslot?.startTime
                             );
-                            const end = combineDateAndTime(
-                                appointment.timeslot?.date,
-                                appointment.timeslot?.endTime
-                            );
+                            const end = combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.endTime);
                             return (
                                 <Card key={appointment.id} className="card-interactive">
                                     <CardContent className="p-4">
@@ -201,11 +199,18 @@ export default function PatientAppointments() {
                                                 </div>
                                             </div>
                                             <div className="flex items-center gap-2">
-                                                <StatusBadge variant={getStatusVariant(appointment.status || "scheduled")}>
+                                                <StatusBadge
+                                                    variant={getStatusVariant(appointment.status || "scheduled")}
+                                                >
                                                     {appointment.status}
                                                 </StatusBadge>
                                                 {appointment.status === "Scheduled" && (
                                                     <>
+                                                        <Button size="sm" variant="outline" asChild>
+                                                            <Link to={`/patient/appointments/${appointment.id}`}>
+                                                                Details
+                                                            </Link>
+                                                        </Button>
                                                         <Button
                                                             size="sm"
                                                             variant="outline"
@@ -225,6 +230,13 @@ export default function PatientAppointments() {
                                                             Cancel
                                                         </Button>
                                                     </>
+                                                )}
+                                                {appointment.status !== "Scheduled" && (
+                                                    <Button size="sm" variant="outline" asChild>
+                                                        <Link to={`/patient/appointments/${appointment.id}`}>
+                                                            Details
+                                                        </Link>
+                                                    </Button>
                                                 )}
                                             </div>
                                         </div>
@@ -266,9 +278,16 @@ export default function PatientAppointments() {
                                                     </p>
                                                 )}
                                             </div>
-                                            <StatusBadge variant={getStatusVariant(appointment.status || "completed")}>
-                                                {appointment.status}
-                                            </StatusBadge>
+                                            <div className="flex items-center gap-2">
+                                                <StatusBadge
+                                                    variant={getStatusVariant(appointment.status || "completed")}
+                                                >
+                                                    {appointment.status}
+                                                </StatusBadge>
+                                                <Button size="sm" variant="outline" asChild>
+                                                    <Link to={`/patient/appointments/${appointment.id}`}>Details</Link>
+                                                </Button>
+                                            </div>
                                         </div>
                                     </CardContent>
                                 </Card>
@@ -290,9 +309,7 @@ export default function PatientAppointments() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Cancel Appointment</DialogTitle>
-                        <DialogDescription>
-                            Provide a reason for cancelling this appointment.
-                        </DialogDescription>
+                        <DialogDescription>Provide a reason for cancelling this appointment.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <Input

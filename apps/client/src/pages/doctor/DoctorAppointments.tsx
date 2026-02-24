@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AppointmentService, DoctorService, type AppointmentDto } from "@mediflow/mediflow-api";
+import { AppointmentService, DoctorService } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -97,8 +97,10 @@ export default function DoctorAppointments() {
                         <div className="space-y-3">
                             {appointmentsForDate
                                 .sort((a, b) => {
-                                    const aStart = combineDateAndTime(a.timeslot?.date, a.timeslot?.startTime)?.getTime() || 0;
-                                    const bStart = combineDateAndTime(b.timeslot?.date, b.timeslot?.startTime)?.getTime() || 0;
+                                    const aStart =
+                                        combineDateAndTime(a.timeslot?.date, a.timeslot?.startTime)?.getTime() || 0;
+                                    const bStart =
+                                        combineDateAndTime(b.timeslot?.date, b.timeslot?.startTime)?.getTime() || 0;
                                     return aStart - bStart;
                                 })
                                 .map((apt) => {
@@ -126,19 +128,24 @@ export default function DoctorAppointments() {
                                                                         {format(start, "h:mm a")}
                                                                     </span>
                                                                 )}
-                                                                {end && start && (
-                                                                    <span>• {format(end, "h:mm a")}</span>
-                                                                )}
+                                                                {end && start && <span>• {format(end, "h:mm a")}</span>}
                                                             </div>
                                                             {apt.notes && (
-                                                                <p className="text-sm text-muted-foreground mt-1">{apt.notes}</p>
+                                                                <p className="text-sm text-muted-foreground mt-1">
+                                                                    {apt.notes}
+                                                                </p>
                                                             )}
                                                         </div>
                                                     </div>
                                                     <div className="flex items-center gap-2">
-                                                        <StatusBadge variant={getStatusVariant(apt.status || "scheduled")}>
+                                                        <StatusBadge
+                                                            variant={getStatusVariant(apt.status || "scheduled")}
+                                                        >
                                                             {apt.status}
                                                         </StatusBadge>
+                                                        <Button size="sm" variant="outline" asChild>
+                                                            <Link to={`/doctor/appointments/${apt.id}`}>Details</Link>
+                                                        </Button>
                                                         {apt.status === "Scheduled" && (
                                                             <Button size="sm" asChild>
                                                                 <Link to={`/doctor/encounter/${apt.id}`}>

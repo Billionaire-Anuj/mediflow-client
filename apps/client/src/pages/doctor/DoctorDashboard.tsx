@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { AppointmentService, DoctorService, type AppointmentDto } from "@mediflow/mediflow-api";
+import { AppointmentService, DoctorService } from "@mediflow/mediflow-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";

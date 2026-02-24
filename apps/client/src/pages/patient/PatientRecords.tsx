@@ -1,6 +1,12 @@
 import { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { AppointmentService, PatientService, type AppointmentDto, type AppointmentDiagnosticsDto, type AppointmentMedicationsDto } from "@mediflow/mediflow-api";
+import {
+    AppointmentService,
+    PatientService,
+    type AppointmentDto,
+    type AppointmentDiagnosticsDto,
+    type AppointmentMedicationsDto
+} from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -49,9 +55,7 @@ export default function PatientRecords() {
     const appointments = appointmentsData?.result ?? [];
 
     const encounters = useMemo<EncounterSummary[]>(() => {
-        return appointments
-            .filter((apt) => apt.medicalRecords)
-            .map((apt) => ({ appointment: apt }));
+        return appointments.filter((apt) => apt.medicalRecords).map((apt) => ({ appointment: apt }));
     }, [appointments]);
 
     const prescriptions = useMemo<PrescriptionSummary[]>(() => {
@@ -173,7 +177,8 @@ export default function PatientRecords() {
                                         <div>
                                             <div className="flex items-center gap-2 mb-1">
                                                 <h3 className="font-medium">{rx.appointment.doctor?.name}</h3>
-                                                <StatusBadge variant={getStatusVariant(rx.medication.status || "pending")}
+                                                <StatusBadge
+                                                    variant={getStatusVariant(rx.medication.status || "pending")}
                                                 >
                                                     {rx.medication.status}
                                                 </StatusBadge>
@@ -222,7 +227,8 @@ export default function PatientRecords() {
                                                         .filter(Boolean)
                                                         .join(", ") || "Lab Tests"}
                                                 </h3>
-                                                <StatusBadge variant={getStatusVariant(lab.diagnostics.status || "scheduled")}
+                                                <StatusBadge
+                                                    variant={getStatusVariant(lab.diagnostics.status || "scheduled")}
                                                 >
                                                     {lab.diagnostics.status}
                                                 </StatusBadge>
@@ -396,20 +402,23 @@ export default function PatientRecords() {
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {(selectedLabRequest.diagnostics.diagnosticTests || []).map((result) => (
-                                                    <tr key={result.id} className="border-t">
-                                                        <td className="p-2">{result.diagnosticTest?.title}</td>
-                                                        <td className="p-2">
-                                                            {result.result?.value} {result.result?.unit}
-                                                        </td>
-                                                        <td className="p-2 text-muted-foreground">
-                                                            {result.result?.lowerRange} - {result.result?.upperRange}
-                                                        </td>
-                                                        <td className="p-2">
-                                                            {result.result?.interpretation || ""}
-                                                        </td>
-                                                    </tr>
-                                                ))}
+                                                {(selectedLabRequest.diagnostics.diagnosticTests || []).map(
+                                                    (result) => (
+                                                        <tr key={result.id} className="border-t">
+                                                            <td className="p-2">{result.diagnosticTest?.title}</td>
+                                                            <td className="p-2">
+                                                                {result.result?.value} {result.result?.unit}
+                                                            </td>
+                                                            <td className="p-2 text-muted-foreground">
+                                                                {result.result?.lowerRange} -{" "}
+                                                                {result.result?.upperRange}
+                                                            </td>
+                                                            <td className="p-2">
+                                                                {result.result?.interpretation || ""}
+                                                            </td>
+                                                        </tr>
+                                                    )
+                                                )}
                                             </tbody>
                                         </table>
                                     </div>

@@ -34,8 +34,8 @@ export default function PharmacyDashboard() {
                 list.push({
                     id: med.id,
                     appointmentId: apt.id,
-                    patientName: apt.patient?.name,
-                    doctorName: apt.doctor?.name,
+                    patientName: apt.patient?.name as string,
+                    doctorName: apt.doctor?.name as string,
                     status: med.status,
                     itemCount: med.drugs?.length || 0,
                     createdAt: apt.bookedDate || apt.timeslot?.date
@@ -138,7 +138,9 @@ export default function PharmacyDashboard() {
                                     )}
                                 </div>
                                 <div className="flex items-center gap-2">
-                                    <StatusBadge variant={getStatusVariant(rx.status || "pending")}>{rx.status}</StatusBadge>
+                                    <StatusBadge variant={getStatusVariant(rx.status || "pending")}>
+                                        {rx.status}
+                                    </StatusBadge>
                                     <Button size="sm" onClick={() => dispenseMutation.mutate(rx.id)}>
                                         Dispense
                                     </Button>

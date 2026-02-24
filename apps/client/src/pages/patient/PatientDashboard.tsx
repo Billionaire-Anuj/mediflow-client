@@ -156,8 +156,7 @@ export default function PatientDashboard() {
                                     </p>
                                 )}
                             </div>
-                            <StatusBadge variant={getStatusVariant(upcomingAppointment.status || "scheduled")}
-                            >
+                            <StatusBadge variant={getStatusVariant(upcomingAppointment.status || "scheduled")}>
                                 {upcomingAppointment.status}
                             </StatusBadge>
                         </div>

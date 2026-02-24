@@ -36,9 +36,7 @@ export function NotificationBell() {
         setUnreadCount(0);
     };
 
-    const getNotificationIcon = (
-        type: "appointment" | "prescription" | "lab" | "system" | "message"
-    ) => {
+    const getNotificationIcon = (type: "appointment" | "prescription" | "lab" | "system" | "message") => {
         const icons: Record<"appointment" | "prescription" | "lab" | "system" | "message", string> = {
             appointment: "📅",
             prescription: "💊",
@@ -92,11 +90,11 @@ export function NotificationBell() {
                                         <p className="text-xs text-muted-foreground line-clamp-2">
                                             {notification.message}
                                         </p>
-                                    <p className="text-xs text-muted-foreground mt-1">
-                                        {formatDistanceToNow(new Date(notification.createdAt), {
-                                            addSuffix: true
-                                        })}
-                                    </p>
+                                        <p className="text-xs text-muted-foreground mt-1">
+                                            {formatDistanceToNow(new Date(notification.createdAt), {
+                                                addSuffix: true
+                                            })}
+                                        </p>
                                     </div>
                                     {!notification.read && (
                                         <div className="h-2 w-2 rounded-full bg-primary flex-shrink-0" />

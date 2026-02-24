@@ -4,6 +4,7 @@ import { cn } from "@/lib/utils";
 import {
     LayoutDashboard,
     Calendar,
+    Clock,
     Users,
     Stethoscope,
     FileText,
@@ -45,6 +46,7 @@ const navigationByRole: Record<string, NavItem[]> = {
         { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard },
         { label: "Appointments", href: "/doctor/appointments", icon: Calendar },
         { label: "Patients", href: "/doctor/patients", icon: Users },
+        { label: "Schedule", href: "/doctor/schedule", icon: Clock },
         { label: "Profile", href: "/doctor/profile", icon: User }
     ],
     lab: [
@@ -53,9 +55,9 @@ const navigationByRole: Record<string, NavItem[]> = {
         { label: "Profile", href: "/lab/profile", icon: User }
     ],
     pharmacist: [
-        { label: "Dashboard", href: "/pharmacy/dashboard", icon: LayoutDashboard },
-        { label: "Prescriptions", href: "/pharmacy/prescriptions", icon: Pill },
-        { label: "Profile", href: "/pharmacy/profile", icon: User }
+        { label: "Dashboard", href: "/pharmacist/dashboard", icon: LayoutDashboard },
+        { label: "Prescriptions", href: "/pharmacist/prescriptions", icon: Pill },
+        { label: "Profile", href: "/pharmacist/profile", icon: User }
     ],
     admin: [
         { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },

@@ -19,6 +19,7 @@ interface PrescriptionItem {
     status?: string | null;
     itemCount: number;
     items: string[];
+    assignedName?: string;
 }
 
 export default function PharmacyPrescriptions() {
@@ -42,7 +43,9 @@ export default function PharmacyPrescriptions() {
                     itemCount: med.drugs?.length || 0,
                     items: (med.drugs || [])
                         .map((drug) => `${drug.medicine?.title || "Medicine"} ${drug.dose || ""}`.trim())
-                        .filter(Boolean)
+                        .filter(Boolean),
+                    assignedName:
+                        med.pharmacist?.name || med.pharmacist?.username || med.pharmacist?.emailAddress || undefined
                 });
             });
         });
@@ -111,6 +114,11 @@ export default function PharmacyPrescriptions() {
                                             <p className="text-sm text-muted-foreground">
                                                 Prescribed by {rx.appointment.doctor?.name}
                                             </p>
+                                            {rx.assignedName && (
+                                                <p className="text-xs text-muted-foreground">
+                                                    Assigned pharmacist: {rx.assignedName}
+                                                </p>
+                                            )}
                                             <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                                                 <Clock className="h-3 w-3" />
                                                 {rx.appointment.bookedDate
@@ -119,7 +127,10 @@ export default function PharmacyPrescriptions() {
                                             </div>
                                             <div className="flex flex-wrap gap-1 mt-2">
                                                 {rx.items.slice(0, 2).map((item, idx) => (
-                                                    <span key={`${rx.id}-${idx}`} className="px-2 py-0.5 bg-accent rounded text-xs">
+                                                    <span
+                                                        key={`${rx.id}-${idx}`}
+                                                        className="px-2 py-0.5 bg-accent rounded text-xs"
+                                                    >
                                                         {item}
                                                     </span>
                                                 ))}
@@ -132,9 +143,11 @@ export default function PharmacyPrescriptions() {
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <StatusBadge variant={getStatusVariant(rx.status || "pending")}>{rx.status}</StatusBadge>
+                                        <StatusBadge variant={getStatusVariant(rx.status || "pending")}>
+                                            {rx.status}
+                                        </StatusBadge>
                                         <Button size="sm" asChild>
-                                            <Link to={`/pharmacy/prescription/${rx.id}`}>
+                                            <Link to={`/pharmacist/prescription/${rx.id}`}>
                                                 Open <ArrowRight className="h-4 w-4 ml-1" />
                                             </Link>
                                         </Button>

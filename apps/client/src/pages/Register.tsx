@@ -70,7 +70,6 @@ export default function Register() {
         register,
         handleSubmit,
         setValue,
-        watch,
         formState: { errors }
     } = useForm<RegisterForm>({
         resolver: zodResolver(registerSchema)
@@ -225,7 +224,9 @@ export default function Register() {
                                         <label htmlFor="profileImage" className="cursor-pointer">
                                             <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
                                             {profileImage ? (
-                                                <p className="text-sm text-foreground font-medium">{profileImage.name}</p>
+                                                <p className="text-sm text-foreground font-medium">
+                                                    {profileImage.name}
+                                                </p>
                                             ) : (
                                                 <p className="text-sm text-muted-foreground">
                                                     Click to upload a profile image

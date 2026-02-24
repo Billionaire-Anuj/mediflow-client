@@ -198,11 +198,33 @@ export class DoctorService {
     }
     /**
      * GetDoctorTimeslots
-     * Retrieve timeslots for a doctor in a date range.
+     * Retrieve timeslots of the profile in a date range.
      * @returns TimeslotDtoListResponseDto OK
      * @throws ApiError
      */
     public static getDoctorTimeslots({
+        startDate,
+        endDate
+    }: {
+        startDate?: string;
+        endDate?: string;
+    }): CancelablePromise<TimeslotDtoListResponseDto> {
+        return __request(OpenAPI, {
+            method: "GET",
+            url: "/api/v1/doctor/timeslots",
+            query: {
+                startDate: startDate,
+                endDate: endDate
+            }
+        });
+    }
+    /**
+     * GetDoctorTimeslotsById
+     * Retrieve timeslots for a doctor in a date range.
+     * @returns TimeslotDtoListResponseDto OK
+     * @throws ApiError
+     */
+    public static getDoctorTimeslotsById({
         doctorId,
         startDate,
         endDate

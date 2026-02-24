@@ -51,8 +51,6 @@ export function getStatusVariant(status: string): StatusBadgeProps["variant"] {
         appointed: "info",
         collected: "warning",
         resulted: "success",
-        scheduled: "info",
-        cancelled: "danger",
 
         // Users
         active: "success",

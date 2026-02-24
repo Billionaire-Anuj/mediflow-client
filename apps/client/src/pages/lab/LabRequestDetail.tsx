@@ -4,8 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
     AppointmentDiagnosticsService,
     type AppointmentDto,
-    type AppointmentDiagnosticsDto,
-    type AppointmentDiagnosticTestsDto
+    type AppointmentDiagnosticsDto
 } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -20,6 +19,7 @@ import { ArrowLeft, User, Upload, Loader2, Save } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { combineDateAndTime } from "@/lib/datetime";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface LabItem {
     appointment: AppointmentDto;
@@ -37,6 +37,7 @@ interface ResultEntry {
 export default function LabRequestDetail() {
     const { id } = useParams<{ id: string }>();
     const queryClient = useQueryClient();
+    const { user } = useAuth();
     const [resultNotes, setResultNotes] = useState("");
     const [results, setResults] = useState<Record<string, ResultEntry>>({});
 
@@ -141,6 +142,21 @@ export default function LabRequestDetail() {
 
     const { appointment, diagnostics } = labItem;
     const start = combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime);
+    const assignedTechnician = diagnostics.labTechnician;
+    const assignedName =
+        assignedTechnician?.name ||
+        assignedTechnician?.username ||
+        assignedTechnician?.emailAddress ||
+        "Assigned Technician";
+    const isAssigned = Boolean(assignedTechnician?.id);
+    const isAssignedToMe = Boolean(user?.id && assignedTechnician?.id === user.id);
+    const assignLabel = assignMutation.isPending
+        ? "Assigning..."
+        : isAssigned
+          ? isAssignedToMe
+              ? "Assigned to You"
+              : `Assigned to ${assignedName}`
+          : "Assign to Me";
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -178,6 +194,10 @@ export default function LabRequestDetail() {
                                 <span>{appointment.doctor?.name}</span>
                             </div>
                             <div className="flex justify-between">
+                                <span className="text-muted-foreground">Assigned Technician</span>
+                                <span>{assignedTechnician ? assignedName : "Unassigned"}</span>
+                            </div>
+                            <div className="flex justify-between">
                                 <span className="text-muted-foreground">Status</span>
                                 <StatusBadge variant={getStatusVariant(diagnostics.status || "scheduled")}>
                                     {diagnostics.status}
@@ -207,9 +227,9 @@ export default function LabRequestDetail() {
                             className="w-full"
                             variant="outline"
                             onClick={() => assignMutation.mutate()}
-                            disabled={assignMutation.isPending}
+                            disabled={assignMutation.isPending || isAssigned}
                         >
-                            {assignMutation.isPending ? "Assigning..." : "Assign to Me"}
+                            {assignLabel}
                         </Button>
                     </CardContent>
                 </Card>

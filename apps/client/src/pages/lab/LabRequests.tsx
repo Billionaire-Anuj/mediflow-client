@@ -19,6 +19,7 @@ interface LabRequestItem {
     appointment: AppointmentDto;
     status?: string | null;
     testNames: string[];
+    assignedName?: string;
 }
 
 export default function LabRequests() {
@@ -40,8 +41,12 @@ export default function LabRequests() {
                     id: diag.id,
                     appointment: apt,
                     status: diag.status,
-                    testNames:
-                        (diag.diagnosticTests || []).map((t) => t.diagnosticTest?.title || "") || []
+                    testNames: (diag.diagnosticTests || []).map((t) => t.diagnosticTest?.title || "") || [],
+                    assignedName:
+                        diag.labTechnician?.name ||
+                        diag.labTechnician?.username ||
+                        diag.labTechnician?.emailAddress ||
+                        undefined
                 });
             });
         });
@@ -116,13 +121,21 @@ export default function LabRequests() {
                                                 <p className="text-sm text-muted-foreground">
                                                     Ordered by {req.appointment.doctor?.name}
                                                 </p>
+                                                {req.assignedName && (
+                                                    <p className="text-xs text-muted-foreground">
+                                                        Assigned to {req.assignedName}
+                                                    </p>
+                                                )}
                                                 <div className="flex items-center gap-2 mt-1 text-xs text-muted-foreground">
                                                     <Clock className="h-3 w-3" />
                                                     {start ? format(start, "MMM d, yyyy h:mm a") : ""}
                                                 </div>
                                                 <div className="flex flex-wrap gap-1 mt-2">
                                                     {req.testNames.slice(0, 2).map((name, idx) => (
-                                                        <span key={`${req.id}-${idx}`} className="px-2 py-0.5 bg-accent rounded text-xs">
+                                                        <span
+                                                            key={`${req.id}-${idx}`}
+                                                            className="px-2 py-0.5 bg-accent rounded text-xs"
+                                                        >
                                                             {name}
                                                         </span>
                                                     ))}

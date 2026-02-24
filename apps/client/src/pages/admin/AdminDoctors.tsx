@@ -20,9 +20,7 @@ export default function AdminDoctors() {
 
     const filteredDoctors = doctors.filter((doc) => {
         const name = doc.name?.toLowerCase() || "";
-        const spec = (doc.specializations || [])
-            .map((s) => s.title?.toLowerCase() || "")
-            .join(" ");
+        const spec = (doc.specializations || []).map((s) => s.title?.toLowerCase() || "").join(" ");
         return name.includes(searchQuery.toLowerCase()) || spec.includes(searchQuery.toLowerCase());
     });
 
@@ -88,7 +86,10 @@ export default function AdminDoctors() {
                                     </div>
                                     <div className="flex flex-wrap gap-1">
                                         {doctor.schedules?.map((s) => (
-                                            <span key={s.id || s.dayOfWeek} className="px-2 py-0.5 bg-accent rounded text-xs">
+                                            <span
+                                                key={s.id || s.dayOfWeek}
+                                                className="px-2 py-0.5 bg-accent rounded text-xs"
+                                            >
                                                 {s.dayOfWeek?.slice(0, 3)}
                                             </span>
                                         ))}

@@ -89,7 +89,7 @@ export const mockNotifications: Notification[] = [
         title: "New Prescription",
         message: "2 new prescriptions awaiting dispensing",
         read: false,
-        actionUrl: "/pharmacy/prescriptions",
+        actionUrl: "/pharmacist/prescriptions",
         createdAt: "2024-12-30T11:35:00Z"
     },
     {
