@@ -16,6 +16,7 @@ import { Toaster } from "@/components/ui/toaster";
 import Landing from "./pages/Landing";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
+import VerifyEmail from "./pages/VerifyEmail";
 import NotFound from "./pages/NotFound";
 
 // Patient pages
@@ -83,6 +84,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                             <Route path="/" element={<Landing />} />
                             <Route path="/login" element={<Login />} />
                             <Route path="/register" element={<Register />} />
+                            <Route path="/verify-email" element={<VerifyEmail />} />
 
                             {/* Patient Routes */}
                             <Route path="/patient" element={<AppShell allowedRoles={["patient"]} />}>
@@ -133,7 +135,10 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route path="dashboard" element={<AdminDashboard />} />
                                 <Route path="users" element={<AdminUsers />} />
                                 <Route path="doctors" element={<AdminDoctors />} />
-                                <Route path="config" element={<Navigate to="/admin/master-data/specializations" replace />} />
+                                <Route
+                                    path="config"
+                                    element={<Navigate to="/admin/master-data/specializations" replace />}
+                                />
                                 <Route path="master-data/specializations" element={<AdminSpecializations />} />
                                 <Route path="master-data/diagnostic-types" element={<AdminDiagnosticTypes />} />
                                 <Route path="master-data/diagnostic-tests" element={<AdminDiagnosticTests />} />

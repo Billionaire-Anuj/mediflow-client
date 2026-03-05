@@ -139,9 +139,7 @@ export default function AdminMedicationTypes() {
             <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>
-                            {editingItem?.mode === "create" ? "Add" : "Edit"} Medication Type
-                        </DialogTitle>
+                        <DialogTitle>{editingItem?.mode === "create" ? "Add" : "Edit"} Medication Type</DialogTitle>
                     </DialogHeader>
                     {editingItem && (
                         <div className="space-y-4">

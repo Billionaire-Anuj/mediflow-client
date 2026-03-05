@@ -17,7 +17,8 @@ import {
     Bell,
     User,
     X,
-    HeartPulse
+    HeartPulse,
+    Tablets
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -143,7 +144,7 @@ const navigationByRole: Record<string, NavEntry[]> = {
                 { label: "Diagnostic Types", href: "/admin/master-data/diagnostic-types", icon: FlaskConical },
                 { label: "Diagnostic Tests", href: "/admin/master-data/diagnostic-tests", icon: FileText },
                 { label: "Medication Types", href: "/admin/master-data/medication-types", icon: Pill },
-                { label: "Medicines", href: "/admin/master-data/medicines", icon: Pill }
+                { label: "Medicines", href: "/admin/master-data/medicines", icon: Tablets }
             ]
         },
         {

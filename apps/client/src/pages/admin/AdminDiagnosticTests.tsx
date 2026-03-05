@@ -170,9 +170,7 @@ export default function AdminDiagnosticTests() {
             <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>
-                            {editingItem?.mode === "create" ? "Add" : "Edit"} Diagnostic Test
-                        </DialogTitle>
+                        <DialogTitle>{editingItem?.mode === "create" ? "Add" : "Edit"} Diagnostic Test</DialogTitle>
                     </DialogHeader>
                     {editingItem && (
                         <div className="space-y-4">
@@ -201,9 +199,7 @@ export default function AdminDiagnosticTests() {
                                 <Select
                                     value={editingItem.diagnosticTypeId || ""}
                                     onValueChange={(value) =>
-                                        setEditingItem((prev) =>
-                                            prev ? { ...prev, diagnosticTypeId: value } : prev
-                                        )
+                                        setEditingItem((prev) => (prev ? { ...prev, diagnosticTypeId: value } : prev))
                                     }
                                 >
                                     <SelectTrigger>

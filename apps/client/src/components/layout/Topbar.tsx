@@ -10,7 +10,7 @@ import {
     DropdownMenuSeparator,
     DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, User, Menu } from "lucide-react";
 import { getRoleLabel } from "@/lib/auth";
 
@@ -52,8 +52,9 @@ export function Topbar({ onMenuClick, showMenuButton = false }: TopbarProps) {
 
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="relative h-9 px-2 gap-2">
+                        <Button variant="ghost" className="relative h-9 px-2 py-8 gap-2">
                             <Avatar className="h-8 w-8">
+                                {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.name} />}
                                 <AvatarFallback className="bg-primary/10 text-primary text-sm">
                                     {user ? getInitials(user.name) : "U"}
                                 </AvatarFallback>

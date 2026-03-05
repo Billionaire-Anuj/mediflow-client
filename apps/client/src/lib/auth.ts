@@ -13,6 +13,15 @@ export interface AuthUser {
     avatarUrl?: string;
 }
 
+export const USER_IMAGE_BASE_URL = "http://localhost:5075/images/user-images/";
+
+export const getAvatarUrl = (fileUrl?: string | null) => {
+    if (!fileUrl) return undefined;
+    const trimmed = fileUrl.trim();
+    if (!trimmed) return undefined;
+    return `${USER_IMAGE_BASE_URL}${trimmed}`;
+};
+
 const roleNameMap: Record<string, AppRole> = {
     "super admin": "admin",
     admin: "admin",
@@ -51,7 +60,7 @@ export const mapProfileToUser = (profile?: ProfileDto | null): AuthUser | null =
         roleName,
         phone: profile.phoneNumber || undefined,
         address: profile.address || undefined,
-        avatarUrl: profile.profileImage?.fileUrl || undefined
+        avatarUrl: getAvatarUrl(profile.profileImage?.fileUrl)
     };
 };
 

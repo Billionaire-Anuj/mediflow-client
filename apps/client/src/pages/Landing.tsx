@@ -1,8 +1,12 @@
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Heart, Stethoscope, Users, Building2, ArrowRight, Shield, Clock, CheckCircle } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 export default function Landing() {
+    const { isAuthenticated, user, isInitializing, logout } = useAuth();
+    const dashboardPath = user ? `/${user.role}/dashboard` : "/login";
+
     return (
         <div className="min-h-screen bg-background">
             {/* Header */}
@@ -15,14 +19,29 @@ export default function Landing() {
                             </div>
                             <span className="font-display font-semibold text-xl">Mediflow</span>
                         </div>
-                        <div className="flex items-center gap-3">
-                            <Button variant="ghost" asChild>
-                                <Link to="/login">Sign In</Link>
-                            </Button>
-                            <Button asChild>
-                                <Link to="/register">Register</Link>
-                            </Button>
-                        </div>
+                        {!isInitializing && (
+                            <div className="flex items-center gap-3">
+                                {isAuthenticated ? (
+                                    <>
+                                        <Button variant="ghost" asChild>
+                                            <Link to={dashboardPath}>Dashboard</Link>
+                                        </Button>
+                                        <Button variant="outline" onClick={logout}>
+                                            Sign Out
+                                        </Button>
+                                    </>
+                                ) : (
+                                    <>
+                                        <Button variant="ghost" asChild>
+                                            <Link to="/login">Sign In</Link>
+                                        </Button>
+                                        <Button asChild>
+                                            <Link to="/register">Register</Link>
+                                        </Button>
+                                    </>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </div>
             </header>
@@ -35,7 +54,10 @@ export default function Landing() {
                         {/* Left Column - CTA Tiles */}
                         <div className="order-2 lg:order-1">
                             <div className="grid grid-cols-2 gap-4">
-                                <Link to="/login" className="card-interactive p-6 group">
+                                <Link
+                                    to={isAuthenticated ? dashboardPath : "/login"}
+                                    className="card-interactive p-6 group"
+                                >
                                     <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                                         <Heart className="h-6 w-6 text-primary" />
                                     </div>
@@ -45,7 +67,10 @@ export default function Landing() {
                                     </p>
                                 </Link>
 
-                                <Link to="/login" className="card-interactive p-6 group">
+                                <Link
+                                    to={isAuthenticated ? dashboardPath : "/login"}
+                                    className="card-interactive p-6 group"
+                                >
                                     <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                                         <Stethoscope className="h-6 w-6 text-primary" />
                                     </div>
@@ -53,7 +78,10 @@ export default function Landing() {
                                     <p className="text-sm text-muted-foreground">Manage consultations & patient care</p>
                                 </Link>
 
-                                <Link to="/login" className="card-interactive p-6 group">
+                                <Link
+                                    to={isAuthenticated ? dashboardPath : "/login"}
+                                    className="card-interactive p-6 group"
+                                >
                                     <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                                         <Users className="h-6 w-6 text-primary" />
                                     </div>
@@ -61,7 +89,10 @@ export default function Landing() {
                                     <p className="text-sm text-muted-foreground">Lab & pharmacy workflow tools</p>
                                 </Link>
 
-                                <Link to="/login" className="card-interactive p-6 group">
+                                <Link
+                                    to={isAuthenticated ? dashboardPath : "/login"}
+                                    className="card-interactive p-6 group"
+                                >
                                     <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
                                         <Building2 className="h-6 w-6 text-primary" />
                                     </div>
@@ -82,15 +113,26 @@ export default function Landing() {
                                 connect with healthcare providers — all in one place.
                             </p>
                             <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                                <Button size="lg" asChild className="gap-2">
-                                    <Link to="/register">
-                                        Get Started
-                                        <ArrowRight className="h-4 w-4" />
-                                    </Link>
-                                </Button>
-                                <Button size="lg" variant="outline" asChild>
-                                    <Link to="/login">Sign In</Link>
-                                </Button>
+                                {isAuthenticated ? (
+                                    <Button size="lg" asChild className="gap-2">
+                                        <Link to={dashboardPath}>
+                                            Go to Dashboard
+                                            <ArrowRight className="h-4 w-4" />
+                                        </Link>
+                                    </Button>
+                                ) : (
+                                    <>
+                                        <Button size="lg" asChild className="gap-2">
+                                            <Link to="/register">
+                                                Get Started
+                                                <ArrowRight className="h-4 w-4" />
+                                            </Link>
+                                        </Button>
+                                        <Button size="lg" variant="outline" asChild>
+                                            <Link to="/login">Sign In</Link>
+                                        </Button>
+                                    </>
+                                )}
                             </div>
                         </div>
                     </div>

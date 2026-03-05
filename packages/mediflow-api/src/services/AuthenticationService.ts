@@ -5,8 +5,10 @@
 import type { AuthenticationDtoResponseDto } from "../models/AuthenticationDtoResponseDto";
 import type { AuthenticationViaSpaDtoResponseDto } from "../models/AuthenticationViaSpaDtoResponseDto";
 import type { BooleanResponseDto } from "../models/BooleanResponseDto";
+import type { EmailConfirmationVerificationDto } from "../models/EmailConfirmationVerificationDto";
 import type { ForgotPasswordConfirmationDto } from "../models/ForgotPasswordConfirmationDto";
 import type { ForgotPasswordResetDto } from "../models/ForgotPasswordResetDto";
+import type { Gender } from "../models/Gender";
 import type { Login2FactorAuthenticationDto } from "../models/Login2FactorAuthenticationDto";
 import type { LoginDto } from "../models/LoginDto";
 import type { LoginSpaDtoResponseDto } from "../models/LoginSpaDtoResponseDto";
@@ -79,6 +81,51 @@ export class AuthenticationService {
         return __request(OpenAPI, {
             method: "POST",
             url: "/api/v1/authentication/login/2fa/spa",
+            body: requestBody,
+            mediaType: "application/json"
+        });
+    }
+    /**
+     * RegisterPatient
+     * Registers a new patient and sends an email confirmation OTP.
+     * @returns BooleanResponseDto OK
+     * @throws ApiError
+     */
+    public static registerPatient({
+        formData
+    }: {
+        formData?: {
+            Password?: string;
+            ProfileImage?: Blob;
+            Gender?: Gender;
+            Name?: string;
+            Username?: string;
+            EmailAddress?: string;
+            Address?: string;
+            PhoneNumber?: string;
+        };
+    }): CancelablePromise<BooleanResponseDto> {
+        return __request(OpenAPI, {
+            method: "POST",
+            url: "/api/v1/authentication/register/patient",
+            formData: formData,
+            mediaType: "multipart/form-data"
+        });
+    }
+    /**
+     * ConfirmEmailAddress
+     * Confirms the OTP for the user's email address.
+     * @returns BooleanResponseDto OK
+     * @throws ApiError
+     */
+    public static confirmEmailAddress({
+        requestBody
+    }: {
+        requestBody?: EmailConfirmationVerificationDto;
+    }): CancelablePromise<BooleanResponseDto> {
+        return __request(OpenAPI, {
+            method: "POST",
+            url: "/api/v1/authentication/confirm/email",
             body: requestBody,
             mediaType: "application/json"
         });

@@ -10,6 +10,8 @@ import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarUrl } from "@/lib/auth";
 import { Search, Users, Eye, Ban, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 
@@ -60,15 +62,21 @@ export default function AdminUsers() {
             <CardContent className="p-4">
                 <div className="flex items-center justify-between">
                     <div className="flex gap-4">
-                        <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                            <span className="font-medium text-primary">
+                        <Avatar className="h-12 w-12">
+                            {user.profileImage?.fileUrl && (
+                                <AvatarImage
+                                    src={getAvatarUrl(user.profileImage.fileUrl)}
+                                    alt={user.name || "User"}
+                                />
+                            )}
+                            <AvatarFallback className="bg-primary/10 text-primary font-medium">
                                 {(user.name || "U")
                                     .split(" ")
                                     .map((n: string) => n[0])
                                     .join("")
                                     .slice(0, 2)}
-                            </span>
-                        </div>
+                            </AvatarFallback>
+                        </Avatar>
                         <div>
                             <h3 className="font-medium">{user.name}</h3>
                             <p className="text-sm text-muted-foreground">{user.emailAddress}</p>
@@ -166,15 +174,21 @@ export default function AdminUsers() {
                     {selectedUser && (
                         <div className="space-y-4">
                             <div className="flex items-center gap-4">
-                                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                                    <span className="text-xl font-semibold text-primary">
+                                <Avatar className="h-16 w-16">
+                                    {selectedUser.profileImage?.fileUrl && (
+                                        <AvatarImage
+                                            src={getAvatarUrl(selectedUser.profileImage.fileUrl)}
+                                            alt={selectedUser.name || "User"}
+                                        />
+                                    )}
+                                    <AvatarFallback className="bg-primary/10 text-primary text-xl font-semibold">
                                         {(selectedUser.name || "U")
                                             .split(" ")
                                             .map((n: string) => n[0])
                                             .join("")
                                             .slice(0, 2)}
-                                    </span>
-                                </div>
+                                    </AvatarFallback>
+                                </Avatar>
                                 <div>
                                     <h3 className="font-semibold text-lg">{selectedUser.name}</h3>
                                     <div className="flex items-center gap-2">

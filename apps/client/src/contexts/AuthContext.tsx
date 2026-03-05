@@ -9,6 +9,7 @@ interface AuthContextType {
     logout: () => void;
     isLoading: boolean;
     isInitializing: boolean;
+    refreshProfile: () => Promise<AuthUser | null>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -82,7 +83,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 login,
                 logout,
                 isLoading,
-                isInitializing
+                isInitializing,
+                refreshProfile: loadProfile
             }}
         >
             {children}

@@ -11,7 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Loader2 } from "lucide-react";
 
 const loginSchema = z.object({
-    email: z.string().email("Please enter a valid email"),
+    email: z.string(),
     password: z.string().min(1, "Password is required")
 });
 
@@ -84,7 +84,6 @@ export default function Login() {
                                     <Label htmlFor="email">Email / Username</Label>
                                     <Input
                                         id="email"
-                                        type="email"
                                         placeholder="Enter your email"
                                         {...register("email")}
                                         className={errors.email ? "border-destructive" : ""}

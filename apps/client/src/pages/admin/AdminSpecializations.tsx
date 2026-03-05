@@ -57,7 +57,8 @@ export default function AdminSpecializations() {
     });
 
     const toggleMutation = useMutation({
-        mutationFn: async (id: string) => SpecializationService.activateDeactivateSpecialization({ specializationId: id }),
+        mutationFn: async (id: string) =>
+            SpecializationService.activateDeactivateSpecialization({ specializationId: id }),
         onSuccess: () => {
             toast.success("Status updated");
             queryClient.invalidateQueries({ queryKey: ["specializations"] });
@@ -138,9 +139,7 @@ export default function AdminSpecializations() {
             <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>
-                            {editingItem?.mode === "create" ? "Add" : "Edit"} Specialization
-                        </DialogTitle>
+                        <DialogTitle>{editingItem?.mode === "create" ? "Add" : "Edit"} Specialization</DialogTitle>
                     </DialogHeader>
                     {editingItem && (
                         <div className="space-y-4">

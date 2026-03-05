@@ -3,7 +3,7 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { DoctorService, SpecializationService } from "@mediflow/mediflow-api";
+import { DoctorService, Gender, SpecializationService } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,12 +125,29 @@ export default function DoctorProfile() {
                             <span>{profile?.name}</span>
                         </div>
                         <div className="flex justify-between py-2 border-b">
+                            <span className="text-muted-foreground">Username</span>
+                            <span>{profile?.username || "N/A"}</span>
+                        </div>
+                        <div className="flex justify-between py-2 border-b">
                             <span className="text-muted-foreground">Email</span>
                             <span>{profile?.emailAddress}</span>
                         </div>
-                        <div className="flex justify-between py-2">
+                        <div className="flex justify-between py-2 border-b">
                             <span className="text-muted-foreground">Phone</span>
                             <span>{profile?.phoneNumber || "N/A"}</span>
+                        </div>
+                        <div className="py-2">
+                            <span className="text-muted-foreground">Gender</span>
+                            <div className="mt-2 flex flex-wrap gap-4">
+                                <label className="flex items-center gap-2 text-sm">
+                                    <Checkbox checked={profile?.gender === Gender.MALE} disabled />
+                                    <span>Male</span>
+                                </label>
+                                <label className="flex items-center gap-2 text-sm">
+                                    <Checkbox checked={profile?.gender === Gender.FEMALE} disabled />
+                                    <span>Female</span>
+                                </label>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

@@ -1,9 +1,10 @@
 import { useEffect, useState } from "react";
+import type { ChangeEvent } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ProfileService } from "@mediflow/mediflow-api";
+import { Gender, ProfileService } from "@mediflow/mediflow-api";
 import { useAuth } from "@/contexts/AuthContext";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
@@ -11,13 +12,16 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
 import { Loader2, Camera } from "lucide-react";
 
 const profileSchema = z.object({
     name: z.string().trim().min(2, "Name must be at least 2 characters").max(100),
+    username: z.string().trim().min(3, "Username must be at least 3 characters").max(50),
     email: z.string().email("Invalid email address"),
+    gender: z.nativeEnum(Gender).optional(),
     phone: z.string().optional(),
     address: z.string().max(500).optional()
 });
@@ -26,8 +30,9 @@ type ProfileForm = z.infer<typeof profileSchema>;
 
 export default function PatientProfile() {
     const queryClient = useQueryClient();
-    const { user } = useAuth();
+    const { user, refreshProfile } = useAuth();
     const [isLoading, setIsLoading] = useState(false);
+    const [isUploadingImage, setIsUploadingImage] = useState(false);
 
     const { data: profileData } = useQuery({
         queryKey: ["profile"],
@@ -38,12 +43,16 @@ export default function PatientProfile() {
         register,
         handleSubmit,
         reset,
+        setValue,
+        watch,
         formState: { errors, isDirty }
     } = useForm<ProfileForm>({
         resolver: zodResolver(profileSchema),
         defaultValues: {
             name: "",
+            username: "",
             email: "",
+            gender: undefined,
             phone: "",
             address: ""
         }
@@ -53,7 +62,9 @@ export default function PatientProfile() {
         if (profileData?.result) {
             reset({
                 name: profileData.result.name || "",
+                username: profileData.result.username || "",
                 email: profileData.result.emailAddress || "",
+                gender: profileData.result.gender || undefined,
                 phone: profileData.result.phoneNumber || "",
                 address: profileData.result.address || ""
             });
@@ -65,7 +76,9 @@ export default function PatientProfile() {
             ProfileService.updateProfile({
                 requestBody: {
                     name: data.name,
+                    username: data.username,
                     emailAddress: data.email,
+                    gender: data.gender,
                     phoneNumber: data.phone,
                     address: data.address
                 }
@@ -73,8 +86,24 @@ export default function PatientProfile() {
         onSuccess: () => {
             toast.success("Profile updated successfully");
             queryClient.invalidateQueries({ queryKey: ["profile"] });
+            refreshProfile();
         },
         onError: () => toast.error("Failed to update profile")
+    });
+
+    const imageMutation = useMutation({
+        mutationFn: async (file: File) =>
+            ProfileService.updateProfileImage({
+                formData: {
+                    ProfileImage: file
+                }
+            }),
+        onSuccess: async () => {
+            toast.success("Profile image updated");
+            await refreshProfile();
+            queryClient.invalidateQueries({ queryKey: ["profile"] });
+        },
+        onError: () => toast.error("Failed to update profile image")
     });
 
     const onSubmit = async (data: ProfileForm) => {
@@ -92,6 +121,25 @@ export default function PatientProfile() {
             .slice(0, 2);
     };
 
+    const genderValue = watch("gender");
+
+    const onGenderChange = (nextGender: Gender, checked: boolean) => {
+        setValue("gender", checked ? nextGender : undefined, { shouldDirty: true });
+    };
+
+    const onProfileImageChange = async (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
+
+        setIsUploadingImage(true);
+        try {
+            await imageMutation.mutateAsync(file);
+        } finally {
+            setIsUploadingImage(false);
+            event.target.value = "";
+        }
+    };
+
     return (
         <div className="space-y-6 animate-fade-in">
             <PageHeader title="Profile" description="Manage your personal information" />
@@ -102,13 +150,28 @@ export default function PatientProfile() {
                         <div className="flex flex-col items-center">
                             <div className="relative">
                                 <Avatar className="h-24 w-24">
+                                    {user?.avatarUrl && <AvatarImage src={user.avatarUrl} alt={user.name} />}
                                     <AvatarFallback className="bg-primary/10 text-primary text-2xl">
                                         {user ? getInitials(user.name) : "U"}
                                     </AvatarFallback>
                                 </Avatar>
-                                <button className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors">
-                                    <Camera className="h-4 w-4" />
-                                </button>
+                                <input
+                                    id="profile-image-upload"
+                                    type="file"
+                                    accept=".jpg,.jpeg,.png"
+                                    className="hidden"
+                                    onChange={onProfileImageChange}
+                                />
+                                <label
+                                    htmlFor="profile-image-upload"
+                                    className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-md hover:bg-primary/90 transition-colors cursor-pointer"
+                                >
+                                    {isUploadingImage ? (
+                                        <Loader2 className="h-4 w-4 animate-spin" />
+                                    ) : (
+                                        <Camera className="h-4 w-4" />
+                                    )}
+                                </label>
                             </div>
                             <h3 className="mt-4 font-semibold text-lg">{user?.name}</h3>
                             <p className="text-sm text-muted-foreground">{user?.email}</p>
@@ -136,6 +199,19 @@ export default function PatientProfile() {
                                 </div>
 
                                 <div className="space-y-2">
+                                    <Label htmlFor="username">Username</Label>
+                                    <Input
+                                        id="username"
+                                        {...register("username")}
+                                        placeholder="user.name"
+                                        className={errors.username ? "border-destructive" : ""}
+                                    />
+                                    {errors.username && (
+                                        <p className="text-xs text-destructive">{errors.username.message}</p>
+                                    )}
+                                </div>
+
+                                <div className="space-y-2">
                                     <Label htmlFor="email">Email</Label>
                                     <Input
                                         id="email"
@@ -147,6 +223,30 @@ export default function PatientProfile() {
                                 </div>
 
                                 <div className="space-y-2">
+                                    <Label>Gender</Label>
+                                    <div className="flex flex-wrap gap-4 mt-5">
+                                        <label className="flex items-center gap-2 text-sm mt-2">
+                                            <Checkbox
+                                                checked={genderValue === Gender.MALE}
+                                                onCheckedChange={(checked) =>
+                                                    onGenderChange(Gender.MALE, Boolean(checked))
+                                                }
+                                            />
+                                            <span>Male</span>
+                                        </label>
+                                        <label className="flex items-center gap-2 text-sm mt-2">
+                                            <Checkbox
+                                                checked={genderValue === Gender.FEMALE}
+                                                onCheckedChange={(checked) =>
+                                                    onGenderChange(Gender.FEMALE, Boolean(checked))
+                                                }
+                                            />
+                                            <span>Female</span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2 sm:col-span-2">
                                     <Label htmlFor="phone">Phone Number</Label>
                                     <Input id="phone" {...register("phone")} placeholder="+1 (555) 000-0000" />
                                 </div>

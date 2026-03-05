@@ -1,20 +1,21 @@
-import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { RoleService, UserService, Gender } from "@mediflow/mediflow-api";
+import { useMutation } from "@tanstack/react-query";
+import { Gender } from "@mediflow/mediflow-api";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2, Upload } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { API_BASE_URL } from "@/lib/api";
+
+const AUTH_BASE_URL = API_BASE_URL.replace(/\/$/, "");
 
 const registerSchema = z.object({
-    roleId: z.string().min(1, "Please select a role"),
     fullName: z.string().min(2, "Full name is required"),
     email: z.string().email("Please enter a valid email"),
     username: z.string().min(3, "Username is required"),
@@ -28,36 +29,45 @@ type RegisterForm = z.infer<typeof registerSchema>;
 
 export default function Register() {
     const navigate = useNavigate();
-    const [profileImage, setProfileImage] = useState<File | null>(null);
-
-    const { data: rolesData } = useQuery({
-        queryKey: ["registerable-roles"],
-        queryFn: async () => RoleService.getAllAvailableRolesList({})
-    });
-
-    const roles = rolesData?.result ?? [];
 
     const mutation = useMutation({
         mutationFn: async (data: RegisterForm) => {
-            return UserService.registerUser({
-                formData: {
-                    Password: data.password,
-                    RoleId: data.roleId,
-                    Gender: data.gender,
-                    Name: data.fullName,
-                    Username: data.username,
-                    EmailAddress: data.email,
-                    Address: data.address,
-                    PhoneNumber: data.phone,
-                    ProfileImage: profileImage || undefined
-                }
+            const formData = new FormData();
+
+            formData.append("Password", data.password);
+            formData.append("Name", data.fullName);
+            formData.append("Username", data.username);
+            formData.append("EmailAddress", data.email);
+
+            if (data.gender) {
+                formData.append("Gender", data.gender);
+            }
+
+            if (data.address) {
+                formData.append("Address", data.address);
+            }
+
+            if (data.phone) {
+                formData.append("PhoneNumber", data.phone);
+            }
+
+            const response = await fetch(`${AUTH_BASE_URL}/api/v1/authentication/register/patient`, {
+                method: "POST",
+                body: formData
             });
+
+            if (!response.ok) {
+                throw new Error(await response.text());
+            }
+
+            return response.json();
         },
-        onSuccess: () => {
-            toast.success("Registration submitted", {
-                description: "You will receive an email once your application is reviewed."
+        onSuccess: (_data, variables) => {
+            toast.success("Registration successful", {
+                description: "Check your email for the OTP to confirm your account."
             });
-            navigate("/login");
+            const emailParam = encodeURIComponent(variables.email);
+            navigate(`/verify-email?email=${emailParam}`);
         },
         onError: () => {
             toast.error("Registration failed", {
@@ -90,9 +100,9 @@ export default function Register() {
                 </Link>
 
                 <div className="max-w-md">
-                    <h1 className="text-4xl font-display font-bold text-foreground mb-4">Join Our Team</h1>
+                    <h1 className="text-4xl font-display font-bold text-foreground mb-4">Create Your Account</h1>
                     <p className="text-lg text-muted-foreground">
-                        Register as a healthcare professional to join our platform and provide quality care to patients.
+                        Sign up as a patient to manage appointments, records, and care.
                     </p>
                 </div>
 
@@ -112,30 +122,11 @@ export default function Register() {
 
                     <Card className="border-border">
                         <CardHeader className="space-y-1">
-                            <CardTitle className="text-2xl font-display">Staff Registration</CardTitle>
-                            <CardDescription>Submit your application to join Mediflow</CardDescription>
+                            <CardTitle className="text-2xl font-display">Patient Registration</CardTitle>
+                            <CardDescription>Create your Mediflow patient account</CardDescription>
                         </CardHeader>
                         <CardContent>
                             <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label>Role</Label>
-                                    <Select onValueChange={(value) => setValue("roleId", value)}>
-                                        <SelectTrigger className={errors.roleId ? "border-destructive" : ""}>
-                                            <SelectValue placeholder="Select your role" />
-                                        </SelectTrigger>
-                                        <SelectContent className="bg-popover">
-                                            {roles.map((role) => (
-                                                <SelectItem key={role.id} value={role.id || ""}>
-                                                    {role.name}
-                                                </SelectItem>
-                                            ))}
-                                        </SelectContent>
-                                    </Select>
-                                    {errors.roleId && (
-                                        <p className="text-xs text-destructive">{errors.roleId.message}</p>
-                                    )}
-                                </div>
-
                                 <div className="space-y-2">
                                     <Label htmlFor="fullName">Full Name</Label>
                                     <Input
@@ -211,39 +202,13 @@ export default function Register() {
                                     <Input id="address" placeholder="Address" {...register("address")} />
                                 </div>
 
-                                <div className="space-y-2">
-                                    <Label>Profile Image</Label>
-                                    <div className="border-2 border-dashed border-border rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer">
-                                        <input
-                                            type="file"
-                                            id="profileImage"
-                                            className="hidden"
-                                            accept=".jpg,.jpeg,.png"
-                                            onChange={(e) => setProfileImage(e.target.files?.[0] || null)}
-                                        />
-                                        <label htmlFor="profileImage" className="cursor-pointer">
-                                            <Upload className="h-8 w-8 mx-auto text-muted-foreground mb-2" />
-                                            {profileImage ? (
-                                                <p className="text-sm text-foreground font-medium">
-                                                    {profileImage.name}
-                                                </p>
-                                            ) : (
-                                                <p className="text-sm text-muted-foreground">
-                                                    Click to upload a profile image
-                                                </p>
-                                            )}
-                                        </label>
-                                    </div>
-                                </div>
-
                                 <Button type="submit" className="w-full" disabled={mutation.isPending}>
                                     {mutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                    Request Registration
+                                    Create Account
                                 </Button>
 
                                 <p className="text-xs text-muted-foreground text-center mt-4">
-                                    Applications are typically reviewed within 2-3 business days. You will receive an
-                                    email notification once approved.
+                                    We will send an OTP to confirm your email address.
                                 </p>
                             </form>
 

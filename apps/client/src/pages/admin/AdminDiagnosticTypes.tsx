@@ -139,9 +139,7 @@ export default function AdminDiagnosticTypes() {
             <Dialog open={!!editingItem} onOpenChange={() => setEditingItem(null)}>
                 <DialogContent className="max-w-md">
                     <DialogHeader>
-                        <DialogTitle>
-                            {editingItem?.mode === "create" ? "Add" : "Edit"} Diagnostic Type
-                        </DialogTitle>
+                        <DialogTitle>{editingItem?.mode === "create" ? "Add" : "Edit"} Diagnostic Type</DialogTitle>
                     </DialogHeader>
                     {editingItem && (
                         <div className="space-y-4">

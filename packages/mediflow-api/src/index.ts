@@ -63,6 +63,7 @@ export type { DoctorProfileDtoListResponseDto } from "./models/DoctorProfileDtoL
 export type { DoctorProfileDtoResponseDto } from "./models/DoctorProfileDtoResponseDto";
 export type { DoctorRecommendationResultDto } from "./models/DoctorRecommendationResultDto";
 export type { DoctorRecommendationResultDtoResponseDto } from "./models/DoctorRecommendationResultDtoResponseDto";
+export type { EmailConfirmationVerificationDto } from "./models/EmailConfirmationVerificationDto";
 export type { EmailOutboxDto } from "./models/EmailOutboxDto";
 export type { EmailOutboxDtoCollectionDto } from "./models/EmailOutboxDtoCollectionDto";
 export type { EmailOutboxDtoListResponseDto } from "./models/EmailOutboxDtoListResponseDto";

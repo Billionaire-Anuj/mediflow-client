@@ -4,5 +4,6 @@
 /* eslint-disable */
 export enum EmailProcess {
     FORGOT_PASSWORD_CONFIRMATION = "ForgotPasswordConfirmation",
-    PASSWORD_RESET_CONFIRMATION = "PasswordResetConfirmation"
+    PASSWORD_RESET_CONFIRMATION = "PasswordResetConfirmation",
+    EMAIL_CONFIRMATION = "EmailConfirmation"
 }

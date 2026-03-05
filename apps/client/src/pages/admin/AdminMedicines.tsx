@@ -198,9 +198,7 @@ export default function AdminMedicines() {
                                 <Select
                                     value={editingItem.medicationTypeId || ""}
                                     onValueChange={(value) =>
-                                        setEditingItem((prev) =>
-                                            prev ? { ...prev, medicationTypeId: value } : prev
-                                        )
+                                        setEditingItem((prev) => (prev ? { ...prev, medicationTypeId: value } : prev))
                                     }
                                 >
                                     <SelectTrigger>
