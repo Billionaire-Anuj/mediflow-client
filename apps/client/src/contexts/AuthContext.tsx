@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useState, useCallback, useEffect } from "react";
 import { AuthenticationService, ProfileService } from "@mediflow/mediflow-api";
 import { AuthUser, mapProfileToUser } from "@/lib/auth";
+import { getErrorMessage } from "@/lib/api";
 
 interface AuthContextType {
     user: AuthUser | null;
     isAuthenticated: boolean;
-    login: (email: string, password: string) => Promise<AuthUser | null>;
+    login: (email: string, password: string) => Promise<{ user: AuthUser | null; message: string | null }>;
     logout: () => void;
     isLoading: boolean;
     isInitializing: boolean;
@@ -38,28 +39,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [loadProfile]);
 
     const login = useCallback(
-        async (email: string, _password: string): Promise<AuthUser | null> => {
+        async (email: string, _password: string): Promise<{ user: AuthUser | null; message: string | null }> => {
             setIsLoading(true);
             try {
                 const response = await AuthenticationService.loginViaSpa({
                     requestBody: { emailAddressOrUsername: email, password: _password }
                 });
+                const message = response.message || null;
                 if (response.result?.isTwoFactorRequired) {
                     setIsLoading(false);
-                    return null;
+                    return { user: null, message };
                 }
                 const profileUser = mapProfileToUser(response.result?.profile);
                 if (profileUser) {
                     setUser(profileUser);
                     setIsLoading(false);
-                    return profileUser;
+                    return { user: profileUser, message };
                 }
                 const loadedUser = await loadProfile();
                 setIsLoading(false);
-                return loadedUser;
-            } catch {
+                return { user: loadedUser, message };
+            } catch (error) {
                 setIsLoading(false);
-                return null;
+                return { user: null, message: getErrorMessage(error) };
             }
         },
         [loadProfile]

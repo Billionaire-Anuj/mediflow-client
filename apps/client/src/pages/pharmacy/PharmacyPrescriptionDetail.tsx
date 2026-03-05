@@ -14,6 +14,7 @@ import { CardSkeleton } from "@/components/ui/loading-skeleton";
 import { ArrowLeft, User, Pill, Loader2 } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 interface PrescriptionDetail {
     appointment: AppointmentDto;
@@ -46,11 +47,11 @@ export default function PharmacyPrescriptionDetail() {
             AppointmentMedicationsService.dispenseAppointmentMedications({
                 appointmentMedicationsId: id!
             }),
-        onSuccess: () => {
-            toast.success("Prescription dispensed successfully");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
         },
-        onError: () => toast.error("Failed to dispense prescription")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     if (isLoading) {

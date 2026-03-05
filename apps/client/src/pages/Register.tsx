@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, getErrorMessage, getResponseMessage } from "@/lib/api";
 
 const AUTH_BASE_URL = API_BASE_URL.replace(/\/$/, "");
 
@@ -56,23 +56,25 @@ export default function Register() {
                 body: formData
             });
 
+            const payload = await response.json().catch(() => null);
+
             if (!response.ok) {
-                throw new Error(await response.text());
+                const message =
+                    payload && typeof payload === "object" && "message" in payload
+                        ? String(payload.message || "")
+                        : "";
+                throw new Error(message || response.statusText);
             }
 
-            return response.json();
+            return payload;
         },
         onSuccess: (_data, variables) => {
-            toast.success("Registration successful", {
-                description: "Check your email for the OTP to confirm your account."
-            });
+            toast.success(getResponseMessage(_data));
             const emailParam = encodeURIComponent(variables.email);
             navigate(`/verify-email?email=${emailParam}`);
         },
-        onError: () => {
-            toast.error("Registration failed", {
-                description: "Please verify your details and try again."
-            });
+        onError: (error) => {
+            toast.error(getErrorMessage(error));
         }
     });
 

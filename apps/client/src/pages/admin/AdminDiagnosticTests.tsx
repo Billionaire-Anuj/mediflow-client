@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
 import { Plus, Edit, Trash2, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 type EditItem = {
     mode: "create" | "edit";
@@ -53,12 +54,12 @@ export default function AdminDiagnosticTests() {
                     diagnosticTypeId: payload.diagnosticTypeId
                 }
             }),
-        onSuccess: () => {
-            toast.success("Diagnostic test created");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["diagnostic-tests"] });
             setEditingItem(null);
         },
-        onError: () => toast.error("Failed to create diagnostic test")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const updateMutation = useMutation({
@@ -73,22 +74,22 @@ export default function AdminDiagnosticTests() {
                     diagnosticTypeId: payload.diagnosticTypeId
                 }
             }),
-        onSuccess: () => {
-            toast.success("Diagnostic test updated");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["diagnostic-tests"] });
             setEditingItem(null);
         },
-        onError: () => toast.error("Failed to update diagnostic test")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const toggleMutation = useMutation({
         mutationFn: async (id: string) =>
             DiagnosticTestService.activateDeactivateDiagnosticTest({ diagnosticTestId: id }),
-        onSuccess: () => {
-            toast.success("Status updated");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["diagnostic-tests"] });
         },
-        onError: () => toast.error("Failed to update status")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const handleSave = () => {
@@ -177,6 +178,7 @@ export default function AdminDiagnosticTests() {
                             <div>
                                 <Label>Title</Label>
                                 <Input
+                                    placeholder="Enter diagnostic test"
                                     value={editingItem.title || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) => (prev ? { ...prev, title: e.target.value } : prev))
@@ -186,6 +188,7 @@ export default function AdminDiagnosticTests() {
                             <div>
                                 <Label>Description</Label>
                                 <Input
+                                    placeholder="Short description"
                                     value={editingItem.description || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) =>
@@ -217,6 +220,7 @@ export default function AdminDiagnosticTests() {
                             <div>
                                 <Label>Specimen</Label>
                                 <Input
+                                    placeholder="e.g., Blood, Urine"
                                     value={editingItem.specimen || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) => (prev ? { ...prev, specimen: e.target.value } : prev))

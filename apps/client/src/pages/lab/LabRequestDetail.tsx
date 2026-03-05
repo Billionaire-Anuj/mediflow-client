@@ -20,6 +20,7 @@ import { format } from "date-fns";
 import { toast } from "sonner";
 import { combineDateAndTime } from "@/lib/datetime";
 import { useAuth } from "@/contexts/AuthContext";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 interface LabItem {
     appointment: AppointmentDto;
@@ -96,11 +97,11 @@ export default function LabRequestDetail() {
                 }
             });
         },
-        onSuccess: () => {
-            toast.success("Result saved");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
         },
-        onError: () => toast.error("Failed to save result")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const uploadMutation = useMutation({
@@ -113,11 +114,11 @@ export default function LabRequestDetail() {
                 }
             });
         },
-        onSuccess: () => {
-            toast.success("Report uploaded");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
         },
-        onError: () => toast.error("Failed to upload report")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     if (isLoading) {
@@ -336,6 +337,7 @@ export default function LabRequestDetail() {
                                                             }
                                                         }))
                                                     }
+                                                    placeholder="Interpretation or remarks"
                                                     rows={2}
                                                 />
                                             </div>

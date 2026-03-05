@@ -19,6 +19,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Search, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 import { combineDateAndTime } from "@/lib/datetime";
 
 export default function PatientDoctors() {
@@ -111,16 +112,14 @@ export default function PatientDoctors() {
                 }
             });
         },
-        onSuccess: () => {
-            toast.success(`Appointment booked with ${bookingDoctor?.name}`);
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             setBookingDoctor(null);
             setSelectedTimeslotId("");
             setReason("");
             queryClient.invalidateQueries({ queryKey: ["timeslots", bookingDoctor?.id, selectedDate] });
         },
-        onError: () => {
-            toast.error("Unable to book appointment. Please try another timeslot.");
-        }
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     if (doctorsLoading) {
@@ -428,6 +427,7 @@ export default function PatientDoctors() {
                                     <Input
                                         type="date"
                                         className="mt-1"
+                                        placeholder="Select date"
                                         value={selectedDate}
                                         onChange={(e) => setSelectedDate(e.target.value)}
                                     />

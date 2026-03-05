@@ -20,6 +20,7 @@ import { ArrowLeft, User, Pill, FlaskConical, Save, Plus, X, Loader2 } from "luc
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { combineDateAndTime } from "@/lib/datetime";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 const encounterSchema = z.object({
     notes: z.string().min(10, "Notes must be at least 10 characters"),
@@ -121,12 +122,10 @@ export default function DoctorEncounter() {
                 }
             });
         },
-        onSuccess: () => {
-            toast.success("Encounter saved successfully");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
         },
-        onError: () => {
-            toast.error("Failed to save encounter");
-        }
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const addMedicine = () => {

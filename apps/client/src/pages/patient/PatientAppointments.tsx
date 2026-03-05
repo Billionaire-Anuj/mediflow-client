@@ -17,6 +17,7 @@ import { combineDateAndTime } from "@/lib/datetime";
 import { Link } from "react-router-dom";
 import { toast } from "sonner";
 import { Label } from "@/components/ui/label";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 export default function PatientAppointments() {
     const queryClient = useQueryClient();
@@ -92,13 +93,13 @@ export default function PatientAppointments() {
                 }
             });
         },
-        onSuccess: () => {
-            toast.success("Appointment cancelled");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             setCanceling(null);
             setCancellationReason("");
             queryClient.invalidateQueries({ queryKey: ["patient-appointments", patientId] });
         },
-        onError: () => toast.error("Failed to cancel appointment")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const updateMutation = useMutation({
@@ -113,13 +114,13 @@ export default function PatientAppointments() {
                 }
             });
         },
-        onSuccess: () => {
-            toast.success("Appointment updated");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             setRescheduling(null);
             setRescheduleTimeslot("");
             queryClient.invalidateQueries({ queryKey: ["patient-appointments", patientId] });
         },
-        onError: () => toast.error("Failed to update appointment")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     if (isLoading) {
@@ -346,6 +347,7 @@ export default function PatientAppointments() {
                                 <Input
                                     type="date"
                                     className="mt-1"
+                                    placeholder="Select date"
                                     value={rescheduleDate}
                                     onChange={(e) => setRescheduleDate(e.target.value)}
                                 />

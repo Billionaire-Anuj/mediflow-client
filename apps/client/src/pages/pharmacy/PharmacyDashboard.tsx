@@ -9,6 +9,7 @@ import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { Pill, Clock, CheckCircle, AlertTriangle } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 export default function PharmacyDashboard() {
     const queryClient = useQueryClient();
@@ -50,11 +51,11 @@ export default function PharmacyDashboard() {
             AppointmentMedicationsService.dispenseAppointmentMedications({
                 appointmentMedicationsId: medicationId
             }),
-        onSuccess: () => {
-            toast.success("Prescription dispensed");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
         },
-        onError: () => toast.error("Failed to dispense prescription")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     if (isLoading) {

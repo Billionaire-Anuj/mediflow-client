@@ -10,7 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Loader2, MailCheck } from "lucide-react";
-import { API_BASE_URL } from "@/lib/api";
+import { API_BASE_URL, getErrorMessage, getResponseMessage } from "@/lib/api";
 
 const AUTH_BASE_URL = API_BASE_URL.replace(/\/$/, "");
 
@@ -39,22 +39,24 @@ export default function VerifyEmail() {
                 })
             });
 
+            const payload = await response.json().catch(() => null);
+
             if (!response.ok) {
-                throw new Error(await response.text());
+                const message =
+                    payload && typeof payload === "object" && "message" in payload
+                        ? String(payload.message || "")
+                        : "";
+                throw new Error(message || response.statusText);
             }
 
-            return response.json();
+            return payload;
         },
-        onSuccess: () => {
-            toast.success("Email verified", {
-                description: "You can now sign in to your account."
-            });
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             navigate("/login");
         },
-        onError: () => {
-            toast.error("Verification failed", {
-                description: "Please check the OTP and try again."
-            });
+        onError: (error) => {
+            toast.error(getErrorMessage(error));
         }
     });
 

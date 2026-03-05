@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
 import { Plus, Edit, Trash2, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 type EditItem = {
     mode: "create" | "edit";
@@ -53,12 +54,12 @@ export default function AdminMedicines() {
                     medicationTypeId: payload.medicationTypeId
                 }
             }),
-        onSuccess: () => {
-            toast.success("Medicine created");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["medicines"] });
             setEditingItem(null);
         },
-        onError: () => toast.error("Failed to create medicine")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const updateMutation = useMutation({
@@ -73,21 +74,21 @@ export default function AdminMedicines() {
                     medicationTypeId: payload.medicationTypeId
                 }
             }),
-        onSuccess: () => {
-            toast.success("Medicine updated");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["medicines"] });
             setEditingItem(null);
         },
-        onError: () => toast.error("Failed to update medicine")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const toggleMutation = useMutation({
         mutationFn: async (id: string) => MedicineService.activateDeactivateMedicine({ medicineId: id }),
-        onSuccess: () => {
-            toast.success("Status updated");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["medicines"] });
         },
-        onError: () => toast.error("Failed to update status")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const handleSave = () => {
@@ -176,6 +177,7 @@ export default function AdminMedicines() {
                             <div>
                                 <Label>Title</Label>
                                 <Input
+                                    placeholder="Enter medicine name"
                                     value={editingItem.title || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) => (prev ? { ...prev, title: e.target.value } : prev))
@@ -185,6 +187,7 @@ export default function AdminMedicines() {
                             <div>
                                 <Label>Description</Label>
                                 <Input
+                                    placeholder="Short description"
                                     value={editingItem.description || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) =>
@@ -216,6 +219,7 @@ export default function AdminMedicines() {
                             <div>
                                 <Label>Format</Label>
                                 <Input
+                                    placeholder="e.g., Tablet, Syrup"
                                     value={editingItem.format || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) => (prev ? { ...prev, format: e.target.value } : prev))

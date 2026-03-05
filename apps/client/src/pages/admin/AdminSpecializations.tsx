@@ -10,6 +10,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
 import { Plus, Edit, Trash2, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 type EditItem = {
     mode: "create" | "edit";
@@ -34,12 +35,12 @@ export default function AdminSpecializations() {
             SpecializationService.createSpecialization({
                 requestBody: { title: payload.title, description: payload.description }
             }),
-        onSuccess: () => {
-            toast.success("Specialization created");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["specializations"] });
             setEditingItem(null);
         },
-        onError: () => toast.error("Failed to create specialization")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const updateMutation = useMutation({
@@ -48,22 +49,22 @@ export default function AdminSpecializations() {
                 specializationId: payload.id || "",
                 requestBody: { id: payload.id, title: payload.title, description: payload.description }
             }),
-        onSuccess: () => {
-            toast.success("Specialization updated");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["specializations"] });
             setEditingItem(null);
         },
-        onError: () => toast.error("Failed to update specialization")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const toggleMutation = useMutation({
         mutationFn: async (id: string) =>
             SpecializationService.activateDeactivateSpecialization({ specializationId: id }),
-        onSuccess: () => {
-            toast.success("Status updated");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["specializations"] });
         },
-        onError: () => toast.error("Failed to update status")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const handleSave = () => {
@@ -146,6 +147,7 @@ export default function AdminSpecializations() {
                             <div>
                                 <Label>Title</Label>
                                 <Input
+                                    placeholder="Enter specialization name"
                                     value={editingItem.title || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) => (prev ? { ...prev, title: e.target.value } : prev))
@@ -155,6 +157,7 @@ export default function AdminSpecializations() {
                             <div>
                                 <Label>Description</Label>
                                 <Input
+                                    placeholder="Short description"
                                     value={editingItem.description || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) =>

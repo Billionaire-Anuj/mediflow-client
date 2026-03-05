@@ -23,6 +23,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
 import { Settings, Plus, Edit, Trash2, Save, Loader2 } from "lucide-react";
 import { toast } from "sonner";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 const tabs = [
     { id: "specializations", label: "Specializations" },
@@ -124,12 +125,12 @@ export default function AdminConfig() {
                     });
             }
         },
-        onSuccess: () => {
-            toast.success("Created successfully");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             invalidateAll();
             setEditingItem(null);
         },
-        onError: () => toast.error("Failed to create record")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const updateMutation = useMutation({
@@ -174,12 +175,12 @@ export default function AdminConfig() {
                     });
             }
         },
-        onSuccess: () => {
-            toast.success("Updated successfully");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             invalidateAll();
             setEditingItem(null);
         },
-        onError: () => toast.error("Failed to update record")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const toggleMutation = useMutation({
@@ -197,11 +198,11 @@ export default function AdminConfig() {
                     return MedicineService.activateDeactivateMedicine({ medicineId: id });
             }
         },
-        onSuccess: () => {
-            toast.success("Status updated");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             invalidateAll();
         },
-        onError: () => toast.error("Failed to update status")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const isLoading =
@@ -392,6 +393,7 @@ export default function AdminConfig() {
                             <div>
                                 <Label>Title</Label>
                                 <Input
+                                    placeholder="Enter title"
                                     value={editingItem.title || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) => (prev ? { ...prev, title: e.target.value } : prev))
@@ -401,6 +403,7 @@ export default function AdminConfig() {
                             <div>
                                 <Label>Description</Label>
                                 <Input
+                                    placeholder="Short description"
                                     value={editingItem.description || ""}
                                     onChange={(e) =>
                                         setEditingItem((prev) =>
@@ -437,6 +440,7 @@ export default function AdminConfig() {
                                     <div>
                                         <Label>Specimen</Label>
                                         <Input
+                                            placeholder="e.g., Blood, Urine"
                                             value={editingItem.specimen || ""}
                                             onChange={(e) =>
                                                 setEditingItem((prev) =>
@@ -475,6 +479,7 @@ export default function AdminConfig() {
                                     <div>
                                         <Label>Format</Label>
                                         <Input
+                                            placeholder="e.g., Tablet, Syrup"
                                             value={editingItem.format || ""}
                                             onChange={(e) =>
                                                 setEditingItem((prev) =>

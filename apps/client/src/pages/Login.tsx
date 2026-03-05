@@ -30,12 +30,12 @@ export default function Login() {
     });
 
     const onSubmit = async (data: LoginForm) => {
-        const user = await login(data.email, data.password);
-        if (user) {
-            toast.success("Welcome back!");
-            navigate(`/${user.role}/dashboard`);
+        const result = await login(data.email, data.password);
+        if (result.user) {
+            toast.success(result.message || "Login successful.");
+            navigate(`/${result.user.role}/dashboard`);
         } else {
-            toast.error("Invalid credentials or 2FA required.");
+            toast.error(result.message || "Login failed.");
         }
     };
 

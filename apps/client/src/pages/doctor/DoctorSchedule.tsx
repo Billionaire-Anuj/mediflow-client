@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { toast } from "sonner";
 import { format } from "date-fns";
+import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
 const dayOptions = Object.values(DayOfWeek);
 
@@ -48,11 +49,11 @@ export default function DoctorSchedule() {
 
     const createMutation = useMutation({
         mutationFn: async () => DoctorService.createDoctorSchedule({ requestBody: newSchedule }),
-        onSuccess: () => {
-            toast.success("Schedule created");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["doctor-profile"] });
         },
-        onError: () => toast.error("Failed to create schedule")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     const updateMutation = useMutation({
@@ -70,12 +71,12 @@ export default function DoctorSchedule() {
                     notes: editingSchedule?.notes
                 }
             }),
-        onSuccess: () => {
-            toast.success("Schedule updated");
+        onSuccess: (data) => {
+            toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["doctor-profile"] });
             setEditingSchedule(null);
         },
-        onError: () => toast.error("Failed to update schedule")
+        onError: (error) => toast.error(getErrorMessage(error))
     });
 
     if (isLoading) {
@@ -107,7 +108,7 @@ export default function DoctorSchedule() {
                                     }
                                 >
                                     <SelectTrigger>
-                                        <SelectValue />
+                                        <SelectValue placeholder="Select day" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-popover">
                                         {dayOptions.map((day) => (
@@ -123,6 +124,7 @@ export default function DoctorSchedule() {
                                 <Input
                                     type="number"
                                     value={newSchedule.slotDurationInMinutes || 30}
+                                    placeholder="30"
                                     onChange={(e) =>
                                         setNewSchedule((prev) => ({
                                             ...prev,
@@ -136,6 +138,7 @@ export default function DoctorSchedule() {
                                 <Input
                                     type="time"
                                     value={newSchedule.startTime || ""}
+                                    placeholder="09:00"
                                     onChange={(e) => setNewSchedule((prev) => ({ ...prev, startTime: e.target.value }))}
                                 />
                             </div>
@@ -144,6 +147,7 @@ export default function DoctorSchedule() {
                                 <Input
                                     type="time"
                                     value={newSchedule.endTime || ""}
+                                    placeholder="17:00"
                                     onChange={(e) => setNewSchedule((prev) => ({ ...prev, endTime: e.target.value }))}
                                 />
                             </div>
@@ -152,6 +156,7 @@ export default function DoctorSchedule() {
                                 <Input
                                     type="date"
                                     value={newSchedule.validStartDate || ""}
+                                    placeholder="Select start date"
                                     onChange={(e) =>
                                         setNewSchedule((prev) => ({ ...prev, validStartDate: e.target.value }))
                                     }
@@ -162,6 +167,7 @@ export default function DoctorSchedule() {
                                 <Input
                                     type="date"
                                     value={newSchedule.validEndDate || ""}
+                                    placeholder="Select end date"
                                     onChange={(e) =>
                                         setNewSchedule((prev) => ({ ...prev, validEndDate: e.target.value }))
                                     }
@@ -172,6 +178,7 @@ export default function DoctorSchedule() {
                             <Label>Notes</Label>
                             <Input
                                 value={newSchedule.notes || ""}
+                                placeholder="Additional notes"
                                 onChange={(e) => setNewSchedule((prev) => ({ ...prev, notes: e.target.value }))}
                             />
                         </div>
@@ -219,12 +226,18 @@ export default function DoctorSchedule() {
                             <Input
                                 type="date"
                                 value={timeslotStart}
+                                placeholder="Select start date"
                                 onChange={(e) => setTimeslotStart(e.target.value)}
                             />
                         </div>
                         <div>
                             <Label>End Date</Label>
-                            <Input type="date" value={timeslotEnd} onChange={(e) => setTimeslotEnd(e.target.value)} />
+                            <Input
+                                type="date"
+                                value={timeslotEnd}
+                                placeholder="Select end date"
+                                onChange={(e) => setTimeslotEnd(e.target.value)}
+                            />
                         </div>
                     </div>
                     {timeslotLoading ? (
@@ -268,7 +281,7 @@ export default function DoctorSchedule() {
                                     }
                                 >
                                     <SelectTrigger>
-                                        <SelectValue />
+                                        <SelectValue placeholder="Select day" />
                                     </SelectTrigger>
                                     <SelectContent className="bg-popover">
                                         {dayOptions.map((day) => (
@@ -285,6 +298,7 @@ export default function DoctorSchedule() {
                                     <Input
                                         type="time"
                                         value={editingSchedule.startTime || ""}
+                                        placeholder="09:00"
                                         onChange={(e) =>
                                             setEditingSchedule((prev) =>
                                                 prev ? { ...prev, startTime: e.target.value } : prev
@@ -297,6 +311,7 @@ export default function DoctorSchedule() {
                                     <Input
                                         type="time"
                                         value={editingSchedule.endTime || ""}
+                                        placeholder="17:00"
                                         onChange={(e) =>
                                             setEditingSchedule((prev) =>
                                                 prev ? { ...prev, endTime: e.target.value } : prev
@@ -310,6 +325,7 @@ export default function DoctorSchedule() {
                                 <Input
                                     type="number"
                                     value={editingSchedule.slotDurationInMinutes || 30}
+                                    placeholder="30"
                                     onChange={(e) =>
                                         setEditingSchedule((prev) =>
                                             prev ? { ...prev, slotDurationInMinutes: Number(e.target.value) } : prev

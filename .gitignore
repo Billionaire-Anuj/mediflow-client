@@ -46,6 +46,7 @@ build
 .env.development
 .env.staging
 .env.production
+*.env.json
 
 # Docker Files
 !docker-compose.yml
