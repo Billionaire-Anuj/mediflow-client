@@ -7,6 +7,8 @@ import type { CreateScheduleDto } from "../models/CreateScheduleDto";
 import type { DoctorProfileDtoCollectionDto } from "../models/DoctorProfileDtoCollectionDto";
 import type { DoctorProfileDtoListResponseDto } from "../models/DoctorProfileDtoListResponseDto";
 import type { DoctorProfileDtoResponseDto } from "../models/DoctorProfileDtoResponseDto";
+import type { Gender } from "../models/Gender";
+import type { GuidResponseDto } from "../models/GuidResponseDto";
 import type { TimeslotDtoListResponseDto } from "../models/TimeslotDtoListResponseDto";
 import type { UpdateDoctorProfileDto } from "../models/UpdateDoctorProfileDto";
 import type { UpdateScheduleDto } from "../models/UpdateScheduleDto";
@@ -243,6 +245,32 @@ export class DoctorService {
                 startDate: startDate,
                 endDate: endDate
             }
+        });
+    }
+    /**
+     * RegisterPatientByDoctor
+     * Registers a patient via doctor and sends credentials by email.
+     * @returns GuidResponseDto OK
+     * @throws ApiError
+     */
+    public static registerPatientByDoctor({
+        formData
+    }: {
+        formData?: {
+            ProfileImage?: Blob;
+            Gender?: Gender;
+            Name?: string;
+            Username?: string;
+            EmailAddress?: string;
+            Address?: string;
+            PhoneNumber?: string;
+        };
+    }): CancelablePromise<GuidResponseDto> {
+        return __request(OpenAPI, {
+            method: "POST",
+            url: "/api/v1/doctor/patients",
+            formData: formData,
+            mediaType: "multipart/form-data"
         });
     }
 }

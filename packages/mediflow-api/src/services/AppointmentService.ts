@@ -9,6 +9,7 @@ import type { AppointmentStatus } from "../models/AppointmentStatus";
 import type { BooleanResponseDto } from "../models/BooleanResponseDto";
 import type { CancelAppointmentDto } from "../models/CancelAppointmentDto";
 import type { ConsultAppointmentDto } from "../models/ConsultAppointmentDto";
+import type { CreateAppointmentByDoctorDto } from "../models/CreateAppointmentByDoctorDto";
 import type { CreateAppointmentDto } from "../models/CreateAppointmentDto";
 import type { UpdateAppointmentDto } from "../models/UpdateAppointmentDto";
 import type { CancelablePromise } from "../core/CancelablePromise";
@@ -75,6 +76,24 @@ export class AppointmentService {
         return __request(OpenAPI, {
             method: "POST",
             url: "/api/v1/appointment",
+            body: requestBody,
+            mediaType: "application/json"
+        });
+    }
+    /**
+     * BookAppointmentByDoctor
+     * Books a new appointment for a patient by doctor.
+     * @returns BooleanResponseDto OK
+     * @throws ApiError
+     */
+    public static bookAppointmentByDoctor({
+        requestBody
+    }: {
+        requestBody?: CreateAppointmentByDoctorDto;
+    }): CancelablePromise<BooleanResponseDto> {
+        return __request(OpenAPI, {
+            method: "POST",
+            url: "/api/v1/appointment/doctor",
             body: requestBody,
             mediaType: "application/json"
         });

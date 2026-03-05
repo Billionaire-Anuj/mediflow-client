@@ -1,44 +1,19 @@
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
-import {
-    AppointmentService,
-    PatientService,
-    type AppointmentDto,
-    type AppointmentDiagnosticsDto,
-    type AppointmentMedicationsDto
-} from "@mediflow/mediflow-api";
+import { AppointmentService, PatientService, type AppointmentDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardContent } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Button } from "@/components/ui/button";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { FileText, Pill, FlaskConical, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { FileText, Pill, FlaskConical, User, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
-
-interface EncounterSummary {
-    appointment: AppointmentDto;
-}
-
-interface PrescriptionSummary {
-    appointment: AppointmentDto;
-    medication: AppointmentMedicationsDto;
-}
-
-interface LabSummary {
-    appointment: AppointmentDto;
-    diagnostics: AppointmentDiagnosticsDto;
-}
+import { getDiagnosticReportUrl } from "@/lib/auth";
 
 export default function PatientRecords() {
-    const [selectedEncounter, setSelectedEncounter] = useState<EncounterSummary | null>(null);
-    const [selectedPrescription, setSelectedPrescription] = useState<PrescriptionSummary | null>(null);
-    const [selectedLabRequest, setSelectedLabRequest] = useState<LabSummary | null>(null);
-
     const { data: profileData } = useQuery({
         queryKey: ["patient-profile"],
         queryFn: async () => PatientService.getPatientProfile()
@@ -54,29 +29,39 @@ export default function PatientRecords() {
 
     const appointments = appointmentsData?.result ?? [];
 
-    const encounters = useMemo<EncounterSummary[]>(() => {
-        return appointments.filter((apt) => apt.medicalRecords).map((apt) => ({ appointment: apt }));
+    const records = useMemo<AppointmentDto[]>(() => {
+        return appointments
+            .filter((apt) => apt.medicalRecords)
+            .sort((a, b) => {
+                const aDate = combineDateAndTime(a.timeslot?.date, a.timeslot?.startTime)?.getTime() || 0;
+                const bDate = combineDateAndTime(b.timeslot?.date, b.timeslot?.startTime)?.getTime() || 0;
+                return bDate - aDate;
+            });
     }, [appointments]);
 
-    const prescriptions = useMemo<PrescriptionSummary[]>(() => {
-        const list: PrescriptionSummary[] = [];
-        appointments.forEach((apt) => {
-            (apt.medications || []).forEach((med) => {
-                list.push({ appointment: apt, medication: med });
-            });
-        });
-        return list;
-    }, [appointments]);
+    const recordStats = useMemo(() => {
+        const prescriptionOrders = records.reduce((sum, record) => sum + (record.medications?.length || 0), 0);
+        const diagnosticOrders = records.reduce((sum, record) => sum + (record.diagnostics?.length || 0), 0);
+        const totalDrugs = records.reduce(
+            (sum, record) =>
+                sum + (record.medications?.reduce((acc, med) => acc + (med.drugs?.length || 0), 0) || 0),
+            0
+        );
+        const totalTests = records.reduce(
+            (sum, record) =>
+                sum +
+                (record.diagnostics?.reduce((acc, diag) => acc + (diag.diagnosticTests?.length || 0), 0) || 0),
+            0
+        );
 
-    const labs = useMemo<LabSummary[]>(() => {
-        const list: LabSummary[] = [];
-        appointments.forEach((apt) => {
-            (apt.diagnostics || []).forEach((diag) => {
-                list.push({ appointment: apt, diagnostics: diag });
-            });
-        });
-        return list;
-    }, [appointments]);
+        return {
+            totalRecords: records.length,
+            prescriptionOrders,
+            diagnosticOrders,
+            totalDrugs,
+            totalTests
+        };
+    }, [records]);
 
     if (isLoading) {
         return (
@@ -92,342 +77,316 @@ export default function PatientRecords() {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <PageHeader title="Medical Records" description="View your encounters, prescriptions, and lab results" />
+            <div className="rounded-2xl border bg-gradient-to-br from-emerald-50 via-white to-teal-50 p-6 shadow-sm">
+                <PageHeader
+                    title="Medical Records"
+                    description="Your complete clinical history with prescriptions and diagnostic tests in one place."
+                />
+                <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <Card className="border-emerald-100 bg-white/80 shadow-none">
+                        <CardContent className="p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Records</p>
+                            <p className="text-2xl font-semibold">{recordStats.totalRecords}</p>
+                            <p className="text-xs text-muted-foreground mt-1">Total Visits Documented</p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-emerald-100 bg-white/80 shadow-none">
+                        <CardContent className="p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Prescriptions</p>
+                            <p className="text-2xl font-semibold">{recordStats.prescriptionOrders}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {recordStats.totalDrugs} Medication Entries
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-emerald-100 bg-white/80 shadow-none">
+                        <CardContent className="p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Diagnostics</p>
+                            <p className="text-2xl font-semibold">{recordStats.diagnosticOrders}</p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {recordStats.totalTests} Tests Prescribed
+                            </p>
+                        </CardContent>
+                    </Card>
+                    <Card className="border-emerald-100 bg-white/80 shadow-none">
+                        <CardContent className="p-4">
+                            <p className="text-xs uppercase tracking-wide text-muted-foreground">Latest</p>
+                            <p className="text-2xl font-semibold">
+                                {records[0]
+                                    ? format(
+                                          combineDateAndTime(
+                                              records[0].timeslot?.date,
+                                              records[0].timeslot?.startTime
+                                          ) || new Date(),
+                                          "MMM d, yyyy"
+                                      )
+                                    : "No Records"}
+                            </p>
+                            <p className="text-xs text-muted-foreground mt-1">
+                                {records[0]?.doctor?.name || "No doctor yet"}
+                            </p>
+                        </CardContent>
+                    </Card>
+                </div>
+            </div>
 
-            <Tabs defaultValue="encounters" className="space-y-4">
-                <TabsList>
-                    <TabsTrigger value="encounters" className="gap-2">
-                        <FileText className="h-4 w-4" />
-                        Encounters ({encounters.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="prescriptions" className="gap-2">
-                        <Pill className="h-4 w-4" />
-                        Prescriptions ({prescriptions.length})
-                    </TabsTrigger>
-                    <TabsTrigger value="labs" className="gap-2">
-                        <FlaskConical className="h-4 w-4" />
-                        Lab Results ({labs.length})
-                    </TabsTrigger>
-                </TabsList>
+            {records.length === 0 ? (
+                <EmptyState
+                    icon={FileText}
+                    title="No medical records"
+                    description="Your consultation records will appear here"
+                />
+            ) : (
+                <Accordion type="multiple" className="space-y-4">
+                    {records.map((record, index) => {
+                        const start = combineDateAndTime(record.timeslot?.date, record.timeslot?.startTime);
+                        const end = combineDateAndTime(record.timeslot?.date, record.timeslot?.endTime);
+                        const medicationCount = record.medications?.reduce(
+                            (total, med) => total + (med.drugs?.length || 0),
+                            0
+                        );
+                        const diagnosticCount = record.diagnostics?.reduce(
+                            (total, diag) => total + (diag.diagnosticTests?.length || 0),
+                            0
+                        );
 
-                <TabsContent value="encounters" className="space-y-4">
-                    {encounters.length === 0 ? (
-                        <EmptyState
-                            icon={FileText}
-                            title="No encounters"
-                            description="Your consultation records will appear here"
-                        />
-                    ) : (
-                        encounters.map((enc) => {
-                            const start = combineDateAndTime(
-                                enc.appointment.timeslot?.date,
-                                enc.appointment.timeslot?.startTime
-                            );
-                            return (
-                                <Card
-                                    key={enc.appointment.id}
-                                    className="card-interactive cursor-pointer"
-                                    onClick={() => setSelectedEncounter(enc)}
-                                >
-                                    <CardContent className="p-4">
-                                        <div className="flex items-start justify-between">
-                                            <div className="flex gap-4">
-                                                <div className="h-10 w-10 rounded-full bg-primary/10 flex items-center justify-center">
-                                                    <User className="h-5 w-5 text-primary" />
-                                                </div>
-                                                <div>
-                                                    <h3 className="font-medium">{enc.appointment.doctor?.name}</h3>
-                                                    <p className="text-sm text-muted-foreground">
-                                                        {enc.appointment.medicalRecords?.diagnosis || "Diagnosis"}
-                                                    </p>
-                                                    {start && (
-                                                        <p className="text-xs text-muted-foreground mt-1">
-                                                            {format(start, "MMM d, yyyy")}
-                                                        </p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                            <Button variant="ghost" size="sm">
-                                                View
-                                            </Button>
-                                        </div>
-                                    </CardContent>
-                                </Card>
-                            );
-                        })
-                    )}
-                </TabsContent>
-
-                <TabsContent value="prescriptions" className="space-y-4">
-                    {prescriptions.length === 0 ? (
-                        <EmptyState
-                            icon={Pill}
-                            title="No prescriptions"
-                            description="Your prescriptions will appear here"
-                        />
-                    ) : (
-                        prescriptions.map((rx) => (
-                            <Card
-                                key={rx.medication.id}
-                                className="card-interactive cursor-pointer"
-                                onClick={() => setSelectedPrescription(rx)}
+                        return (
+                            <AccordionItem
+                                key={record.id || index}
+                                value={record.id || `record-${index}`}
+                                className="border rounded-2xl bg-card shadow-sm transition hover:border-primary/40"
                             >
-                                <CardContent className="p-4">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-medium">{rx.appointment.doctor?.name}</h3>
-                                                <StatusBadge
-                                                    variant={getStatusVariant(rx.medication.status || "pending")}
-                                                >
-                                                    {rx.medication.status}
-                                                </StatusBadge>
+                                <AccordionTrigger className="px-5 py-5 hover:no-underline">
+                                    <div className="flex w-full items-start content-between gap-3 text-left">
+                                        <div className="flex items-start gap-4">
+                                            <div className="h-11 w-11 rounded-2xl bg-primary/10 flex items-center justify-center">
+                                                <User className="h-5 w-5 text-primary" />
                                             </div>
-                                            <p className="text-sm text-muted-foreground">
-                                                {(rx.medication.drugs || []).length} medication
-                                                {(rx.medication.drugs || []).length !== 1 ? "s" : ""}
-                                            </p>
-                                            {rx.appointment.bookedDate && (
-                                                <p className="text-xs text-muted-foreground mt-1">
-                                                    {format(new Date(rx.appointment.bookedDate), "MMM d, yyyy")}
+                                            <div className="text-left">
+                                                <p className="text-xs uppercase tracking-wide text-muted-foreground">
+                                                    Medical Record
                                                 </p>
-                                            )}
-                                        </div>
-                                        <Button variant="ghost" size="sm">
-                                            View
-                                        </Button>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        ))
-                    )}
-                </TabsContent>
-
-                <TabsContent value="labs" className="space-y-4">
-                    {labs.length === 0 ? (
-                        <EmptyState
-                            icon={FlaskConical}
-                            title="No lab results"
-                            description="Your lab results will appear here"
-                        />
-                    ) : (
-                        labs.map((lab) => (
-                            <Card
-                                key={lab.diagnostics.id}
-                                className="card-interactive cursor-pointer"
-                                onClick={() => setSelectedLabRequest(lab)}
-                            >
-                                <CardContent className="p-4">
-                                    <div className="flex items-start justify-between">
-                                        <div>
-                                            <div className="flex items-center gap-2 mb-1">
-                                                <h3 className="font-medium">
-                                                    {(lab.diagnostics.diagnosticTests || [])
-                                                        .map((t) => t.diagnosticTest?.title)
-                                                        .filter(Boolean)
-                                                        .join(", ") || "Lab Tests"}
-                                                </h3>
-                                                <StatusBadge
-                                                    variant={getStatusVariant(lab.diagnostics.status || "scheduled")}
-                                                >
-                                                    {lab.diagnostics.status}
-                                                </StatusBadge>
+                                                <p className="font-semibold text-base">
+                                                    {record.doctor?.name || "Doctor"}
+                                                </p>
                                             </div>
-                                            <p className="text-sm text-muted-foreground">
-                                                Ordered by {lab.appointment.doctor?.name}
-                                            </p>
                                         </div>
-                                        <Button variant="ghost" size="sm">
-                                            View
-                                        </Button>
                                     </div>
-                                </CardContent>
-                            </Card>
-                        ))
-                    )}
-                </TabsContent>
-            </Tabs>
+                                </AccordionTrigger>
+                                <AccordionContent className="px-5 pb-5">
+                                    <div className="grid gap-5 lg:grid-cols-[1.2fr_1fr]">
+                                        <div className="space-y-5">
+                                            <Card className="border-border/60 bg-white">
+                                                <CardContent className="p-5 space-y-4">
+                                                    <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
+                                                        <div className="flex items-center gap-2">
+                                                            <Calendar className="h-4 w-4" />
+                                                            <span>
+                                                                {start
+                                                                    ? format(start, "MMMM d, yyyy")
+                                                                    : "Date not set"}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center gap-2">
+                                                            <Clock className="h-4 w-4" />
+                                                            <span>
+                                                                {start && end
+                                                                    ? `${format(start, "h:mm a")} - ${format(end, "h:mm a")}`
+                                                                    : "Time not set"}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-medium mb-1">Notes</h4>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {record.medicalRecords?.notes || "No notes provided."}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-medium mb-1">Diagnosis</h4>
+                                                        <p className="text-sm">
+                                                            {record.medicalRecords?.diagnosis || "Not specified"}
+                                                        </p>
+                                                    </div>
+                                                    <div>
+                                                        <h4 className="font-medium mb-1">Treatment Plan</h4>
+                                                        <p className="text-sm text-muted-foreground">
+                                                            {record.medicalRecords?.treatment || "Not specified"}
+                                                        </p>
+                                                    </div>
+                                                    {record.medicalRecords?.prescriptions && (
+                                                        <div>
+                                                            <h4 className="font-medium mb-1">Prescriptions</h4>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {record.medicalRecords?.prescriptions}
+                                                            </p>
+                                                        </div>
+                                                    )}
+                                                </CardContent>
+                                            </Card>
 
-            <Dialog open={!!selectedEncounter} onOpenChange={() => setSelectedEncounter(null)}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Encounter Details</DialogTitle>
-                        <DialogDescription>
-                            {selectedEncounter &&
-                                selectedEncounter.appointment.timeslot?.date &&
-                                format(new Date(selectedEncounter.appointment.timeslot.date), "MMMM d, yyyy")}
-                        </DialogDescription>
-                    </DialogHeader>
-                    {selectedEncounter && (
-                        <ScrollArea className="max-h-[60vh]">
-                            <div className="space-y-4">
-                                <div className="flex items-center gap-3 p-3 bg-accent/50 rounded-lg">
-                                    <User className="h-5 w-5 text-primary" />
-                                    <div>
-                                        <p className="font-medium">{selectedEncounter.appointment.doctor?.name}</p>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="font-medium mb-1">Notes</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        {selectedEncounter.appointment.medicalRecords?.notes || "No notes provided."}
-                                    </p>
-                                </div>
-                                <div>
-                                    <h4 className="font-medium mb-1">Diagnosis</h4>
-                                    <p className="text-sm">
-                                        {selectedEncounter.appointment.medicalRecords?.diagnosis || "Not specified"}
-                                    </p>
-                                </div>
-                                <div>
-                                    <h4 className="font-medium mb-1">Treatment Plan</h4>
-                                    <p className="text-sm text-muted-foreground">
-                                        {selectedEncounter.appointment.medicalRecords?.treatment || "Not specified"}
-                                    </p>
-                                </div>
-                                {selectedEncounter.appointment.medicalRecords?.prescriptions && (
-                                    <div>
-                                        <h4 className="font-medium mb-1">Prescriptions</h4>
-                                        <p className="text-sm text-muted-foreground">
-                                            {selectedEncounter.appointment.medicalRecords?.prescriptions}
-                                        </p>
-                                    </div>
-                                )}
-                            </div>
-                        </ScrollArea>
-                    )}
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={!!selectedPrescription} onOpenChange={() => setSelectedPrescription(null)}>
-                <DialogContent className="max-w-lg">
-                    <DialogHeader>
-                        <DialogTitle>Prescription Details</DialogTitle>
-                        <DialogDescription>
-                            {selectedPrescription && `Prescribed by ${selectedPrescription.appointment.doctor?.name}`}
-                        </DialogDescription>
-                    </DialogHeader>
-                    {selectedPrescription && (
-                        <div className="space-y-4">
-                            <div className="flex items-center justify-between">
-                                <span className="text-sm text-muted-foreground">
-                                    {selectedPrescription.appointment.bookedDate
-                                        ? format(new Date(selectedPrescription.appointment.bookedDate), "MMM d, yyyy")
-                                        : ""}
-                                </span>
-                                <StatusBadge
-                                    variant={getStatusVariant(selectedPrescription.medication.status || "pending")}
-                                >
-                                    {selectedPrescription.medication.status}
-                                </StatusBadge>
-                            </div>
-
-                            <div className="space-y-3">
-                                {(selectedPrescription.medication.drugs || []).map((item) => (
-                                    <div key={item.id} className="p-3 border rounded-lg">
-                                        <div className="flex items-center justify-between mb-1">
-                                            <h4 className="font-medium">
-                                                {item.medicine?.title} {item.dose}
-                                            </h4>
+                                            {record.medications?.length ? (
+                                                <Card className="border-border/60 bg-white">
+                                                    <CardContent className="p-5 space-y-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <Pill className="h-4 w-4 text-primary" />
+                                                            <h4 className="font-medium">Prescriptions</h4>
+                                                        </div>
+                                                        {record.medications.map((med) => (
+                                                            <div key={med.id} className="p-3 border rounded-xl">
+                                                                <div className="flex items-center justify-between mb-2">
+                                                                    <span className="text-sm font-medium">
+                                                                        Medication Order
+                                                                    </span>
+                                                                    <StatusBadge
+                                                                        variant={getStatusVariant(
+                                                                            med.status || "pending"
+                                                                        )}
+                                                                    >
+                                                                        {med.status}
+                                                                    </StatusBadge>
+                                                                </div>
+                                                                <div className="space-y-2">
+                                                                    {(med.drugs || []).map((item) => (
+                                                                        <div key={item.id} className="text-sm">
+                                                                            {item.medicine?.title} {item.dose}
+                                                                            <span className="text-muted-foreground">
+                                                                                {" "}
+                                                                                • {item.frequency} • {item.duration}
+                                                                            </span>
+                                                                        </div>
+                                                                    ))}
+                                                                </div>
+                                                                {med.notes && (
+                                                                    <p className="text-xs text-muted-foreground mt-2">
+                                                                        {med.notes}
+                                                                    </p>
+                                                                )}
+                                                            </div>
+                                                        ))}
+                                                    </CardContent>
+                                                </Card>
+                                            ) : null}
                                         </div>
-                                        <p className="text-sm text-muted-foreground">
-                                            {item.frequency} • {item.duration}
-                                        </p>
-                                        {item.instructions && (
-                                            <p className="text-xs text-muted-foreground mt-1">{item.instructions}</p>
-                                        )}
+
+                                        <div className="space-y-5">
+                                            <Card className="border-border/60 bg-white">
+                                                <CardContent className="p-5 space-y-2">
+                                                    <h4 className="font-medium">Visit Details</h4>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Doctor: {record.doctor?.name || "Doctor"}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Symptoms: {record.symptoms || "Not recorded"}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        Notes: {record.notes || "None"}
+                                                    </p>
+                                                </CardContent>
+                                            </Card>
+
+                                            {record.diagnostics?.length ? (
+                                                <Card className="border-border/60 bg-white">
+                                                    <CardContent className="p-5 space-y-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <FlaskConical className="h-4 w-4 text-primary" />
+                                                            <h4 className="font-medium">Diagnostic Tests</h4>
+                                                        </div>
+                                                        {record.diagnostics.map((diag) => (
+                                                            <div key={diag.id} className="space-y-2">
+                                                                <div className="flex items-center justify-between">
+                                                                    <span className="text-sm font-medium">
+                                                                        Lab Request
+                                                                    </span>
+                                                                    <StatusBadge
+                                                                        variant={getStatusVariant(
+                                                                            diag.status || "scheduled"
+                                                                        )}
+                                                                    >
+                                                                        {diag.status}
+                                                                    </StatusBadge>
+                                                                </div>
+                                                                <div className="border rounded-xl overflow-hidden">
+                                                                    <table className="w-full text-sm">
+                                                                        <thead className="bg-muted">
+                                                                            <tr>
+                                                                                <th className="text-left p-2 font-medium">
+                                                                                    Test
+                                                                                </th>
+                                                                                <th className="text-left p-2 font-medium">
+                                                                                    Value
+                                                                                </th>
+                                                                                <th className="text-left p-2 font-medium">
+                                                                                    Reference
+                                                                                </th>
+                                                                                <th className="text-left p-2 font-medium">
+                                                                                    Interpretation
+                                                                                </th>
+                                                                                <th className="text-left p-2 font-medium">
+                                                                                    Report
+                                                                                </th>
+                                                                            </tr>
+                                                                        </thead>
+                                                                        <tbody>
+                                                                            {(diag.diagnosticTests || []).map(
+                                                                                (result) => (
+                                                                                    <tr
+                                                                                        key={result.id}
+                                                                                        className="border-t"
+                                                                                    >
+                                                                                        <td className="p-2">
+                                                                                            {result.diagnosticTest
+                                                                                                ?.title}
+                                                                                        </td>
+                                                                                        <td className="p-2">
+                                                                                            {result.result?.value}{" "}
+                                                                                            {result.result?.unit}
+                                                                                        </td>
+                                                                                        <td className="p-2 text-muted-foreground">
+                                                                                            {result.result?.lowerRange}{" "}
+                                                                                            - {result.result?.upperRange}
+                                                                                        </td>
+                                                                                        <td className="p-2">
+                                                                                            {result.result?.interpretation ||
+                                                                                                ""}
+                                                                                        </td>
+                                                                                        <td className="p-2">
+                                                                                            {result.report?.fileUrl ? (
+                                                                                                <a
+                                                                                                    href={getDiagnosticReportUrl(
+                                                                                                        result.report.fileUrl
+                                                                                                    )}
+                                                                                                    target="_blank"
+                                                                                                    rel="noreferrer"
+                                                                                                    className="text-sm text-primary underline-offset-4 hover:underline"
+                                                                                                >
+                                                                                                    Download
+                                                                                                </a>
+                                                                                            ) : (
+                                                                                                <span className="text-xs text-muted-foreground">
+                                                                                                    —
+                                                                                                </span>
+                                                                                            )}
+                                                                                        </td>
+                                                                                    </tr>
+                                                                                )
+                                                                            )}
+                                                                        </tbody>
+                                                                    </table>
+                                                                </div>
+                                                            </div>
+                                                        ))}
+                                                    </CardContent>
+                                                </Card>
+                                            ) : null}
+                                        </div>
                                     </div>
-                                ))}
-                            </div>
-
-                            {selectedPrescription.medication.notes && (
-                                <div className="p-3 bg-accent/50 rounded-lg">
-                                    <p className="text-sm font-medium">Pharmacy Notes</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {selectedPrescription.medication.notes}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
-                    )}
-                </DialogContent>
-            </Dialog>
-
-            <Dialog open={!!selectedLabRequest} onOpenChange={() => setSelectedLabRequest(null)}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>Lab Results</DialogTitle>
-                        <DialogDescription>
-                            {selectedLabRequest && `Ordered by ${selectedLabRequest.appointment.doctor?.name}`}
-                        </DialogDescription>
-                    </DialogHeader>
-                    {selectedLabRequest && (
-                        <ScrollArea className="max-h-[60vh]">
-                            <div className="space-y-4">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">
-                                        {selectedLabRequest.appointment.bookedDate
-                                            ? format(new Date(selectedLabRequest.appointment.bookedDate), "MMM d, yyyy")
-                                            : ""}
-                                    </span>
-                                    <StatusBadge
-                                        variant={getStatusVariant(selectedLabRequest.diagnostics.status || "scheduled")}
-                                    >
-                                        {selectedLabRequest.diagnostics.status}
-                                    </StatusBadge>
-                                </div>
-
-                                <div>
-                                    <h4 className="font-medium mb-2">Tests Ordered</h4>
-                                    <div className="flex flex-wrap gap-2">
-                                        {(selectedLabRequest.diagnostics.diagnosticTests || []).map((test) => (
-                                            <span key={test.id} className="px-2 py-1 bg-accent rounded text-sm">
-                                                {test.diagnosticTest?.title}
-                                            </span>
-                                        ))}
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <h4 className="font-medium mb-2">Results</h4>
-                                    <div className="border rounded-lg overflow-hidden">
-                                        <table className="w-full text-sm">
-                                            <thead className="bg-muted">
-                                                <tr>
-                                                    <th className="text-left p-2 font-medium">Test</th>
-                                                    <th className="text-left p-2 font-medium">Value</th>
-                                                    <th className="text-left p-2 font-medium">Reference</th>
-                                                    <th className="text-left p-2 font-medium">Interpretation</th>
-                                                </tr>
-                                            </thead>
-                                            <tbody>
-                                                {(selectedLabRequest.diagnostics.diagnosticTests || []).map(
-                                                    (result) => (
-                                                        <tr key={result.id} className="border-t">
-                                                            <td className="p-2">{result.diagnosticTest?.title}</td>
-                                                            <td className="p-2">
-                                                                {result.result?.value} {result.result?.unit}
-                                                            </td>
-                                                            <td className="p-2 text-muted-foreground">
-                                                                {result.result?.lowerRange} -{" "}
-                                                                {result.result?.upperRange}
-                                                            </td>
-                                                            <td className="p-2">
-                                                                {result.result?.interpretation || ""}
-                                                            </td>
-                                                        </tr>
-                                                    )
-                                                )}
-                                            </tbody>
-                                        </table>
-                                    </div>
-                                </div>
-                            </div>
-                        </ScrollArea>
-                    )}
-                </DialogContent>
-            </Dialog>
+                                </AccordionContent>
+                            </AccordionItem>
+                        );
+                    })}
+                </Accordion>
+            )}
         </div>
     );
 }

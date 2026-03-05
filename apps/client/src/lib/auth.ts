@@ -14,12 +14,20 @@ export interface AuthUser {
 }
 
 export const USER_IMAGE_BASE_URL = "http://localhost:5075/images/user-images/";
+export const DIAGNOSTIC_REPORT_BASE_URL = "http://localhost:5075/images/diagnostic-reports/";
 
 export const getAvatarUrl = (fileUrl?: string | null) => {
     if (!fileUrl) return undefined;
     const trimmed = fileUrl.trim();
     if (!trimmed) return undefined;
     return `${USER_IMAGE_BASE_URL}${trimmed}`;
+};
+
+export const getDiagnosticReportUrl = (fileUrl?: string | null) => {
+    if (!fileUrl) return undefined;
+    const trimmed = fileUrl.trim();
+    if (!trimmed) return undefined;
+    return `${DIAGNOSTIC_REPORT_BASE_URL}${trimmed}`;
 };
 
 const roleNameMap: Record<string, AppRole> = {

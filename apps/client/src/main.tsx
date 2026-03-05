@@ -33,6 +33,7 @@ import AppointmentDetail from "./pages/AppointmentDetail";
 // Doctor pages
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
 import DoctorAppointments from "./pages/doctor/DoctorAppointments";
+import DoctorAppointmentDetail from "./pages/doctor/DoctorAppointmentDetail";
 import DoctorPatients from "./pages/doctor/DoctorPatients";
 import DoctorPatientDetail from "./pages/doctor/DoctorPatientDetail";
 import DoctorEncounter from "./pages/doctor/DoctorEncounter";
@@ -107,7 +108,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route index element={<Navigate to="/doctor/dashboard" replace />} />
                                 <Route path="dashboard" element={<DoctorDashboard />} />
                                 <Route path="appointments" element={<DoctorAppointments />} />
-                                <Route path="appointments/:appointmentId" element={<AppointmentDetail />} />
+                                <Route path="appointments/:appointmentId" element={<DoctorAppointmentDetail />} />
                                 <Route path="patients" element={<DoctorPatients />} />
                                 <Route path="patient/:id" element={<DoctorPatientDetail />} />
                                 <Route path="encounter/:appointmentId" element={<DoctorEncounter />} />

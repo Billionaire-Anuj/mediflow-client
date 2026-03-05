@@ -12,15 +12,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, User, Upload, Loader2, Save } from "lucide-react";
+import { ArrowLeft, User, Upload, Loader2, Save, Calendar, Clock, Stethoscope, Download } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { combineDateAndTime } from "@/lib/datetime";
 import { useAuth } from "@/contexts/AuthContext";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
+import { getAvatarUrl, getDiagnosticReportUrl } from "@/lib/auth";
 
 interface LabItem {
     appointment: AppointmentDto;
@@ -41,6 +45,8 @@ export default function LabRequestDetail() {
     const { user } = useAuth();
     const [resultNotes, setResultNotes] = useState("");
     const [results, setResults] = useState<Record<string, ResultEntry>>({});
+    const [lockedTests, setLockedTests] = useState<Set<string>>(new Set());
+    const [openTests, setOpenTests] = useState<string[]>([]);
 
     const { data, isLoading } = useQuery({
         queryKey: ["lab-requests"],
@@ -74,6 +80,15 @@ export default function LabRequestDetail() {
         });
         setResults(initial);
         setResultNotes(labItem.diagnostics.notes || "");
+        setLockedTests(new Set());
+        const incomplete = (labItem.diagnostics.diagnosticTests || [])
+            .map((test, index) => ({
+                test,
+                key: test.id || `test-${index}`
+            }))
+            .filter(({ test }) => !test.result && !test.report)
+            .map(({ key }) => key);
+        setOpenTests(incomplete);
     }, [labItem]);
 
     const assignMutation = useMutation({
@@ -97,8 +112,15 @@ export default function LabRequestDetail() {
                 }
             });
         },
-        onSuccess: (data) => {
+        onSuccess: (data, variables) => {
             toast.success(getResponseMessage(data));
+            if (variables?.testId) {
+                setLockedTests((prev) => {
+                    const next = new Set(prev);
+                    next.add(variables.testId);
+                    return next;
+                });
+            }
             queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
         },
         onError: (error) => toast.error(getErrorMessage(error))
@@ -114,8 +136,15 @@ export default function LabRequestDetail() {
                 }
             });
         },
-        onSuccess: (data) => {
+        onSuccess: (data, variables) => {
             toast.success(getResponseMessage(data));
+            if (variables?.testId) {
+                setLockedTests((prev) => {
+                    const next = new Set(prev);
+                    next.add(variables.testId);
+                    return next;
+                });
+            }
             queryClient.invalidateQueries({ queryKey: ["lab-requests"] });
         },
         onError: (error) => toast.error(getErrorMessage(error))
@@ -158,6 +187,15 @@ export default function LabRequestDetail() {
               ? "Assigned to You"
               : `Assigned to ${assignedName}`
           : "Assign to Me";
+    const patientInitials =
+        appointment.patient?.name
+            ?.split(" ")
+            .map((n) => n[0])
+            .join("")
+            .slice(0, 2) || "P";
+    const isResulted = diagnostics.status === "Resulted";
+    const totalTests = diagnostics.diagnosticTests?.length || 0;
+    const completedTests = (diagnostics.diagnosticTests || []).filter((test) => test.result || test.report).length;
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -173,37 +211,57 @@ export default function LabRequestDetail() {
                 />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-                <Card>
+            <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr]">
+                <Card className="border-border/60">
                     <CardHeader>
-                        <CardTitle className="text-base">Request Details</CardTitle>
+                        <CardTitle className="text-base">Request Overview</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                <User className="h-6 w-6 text-primary" />
-                            </div>
+                    <CardContent className="space-y-5">
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-14 w-14 ring-2 ring-primary/10">
+                                <AvatarImage
+                                    src={getAvatarUrl(appointment.patient?.profileImage?.fileUrl)}
+                                    alt={appointment.patient?.name || "Patient"}
+                                />
+                                <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                                    {patientInitials}
+                                </AvatarFallback>
+                            </Avatar>
                             <div>
-                                <p className="font-medium">{appointment.patient?.name}</p>
+                                <p className="font-semibold">{appointment.patient?.name}</p>
                                 <p className="text-sm text-muted-foreground">Patient</p>
                             </div>
                         </div>
 
-                        <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Ordered by</span>
-                                <span>{appointment.doctor?.name}</span>
+                        <div className="space-y-2 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                                <Stethoscope className="h-4 w-4" />
+                                <span>Ordered by {appointment.doctor?.name || "Doctor"}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Assigned Technician</span>
-                                <span>{assignedTechnician ? assignedName : "Unassigned"}</span>
+                            <div className="flex items-center gap-2">
+                                <User className="h-4 w-4" />
+                                <span>Assigned: {assignedTechnician ? assignedName : "Unassigned"}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Status</span>
-                                <StatusBadge variant={getStatusVariant(diagnostics.status || "scheduled")}>
-                                    {diagnostics.status}
-                                </StatusBadge>
+                            <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>{start ? format(start, "MMM d, yyyy") : ""}</span>
                             </div>
+                            <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>{start ? format(start, "h:mm a") : ""}</span>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <StatusBadge variant={getStatusVariant(diagnostics.status || "scheduled")}>
+                                {diagnostics.status}
+                            </StatusBadge>
+                            {isResulted && (
+                                <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Resulted</Badge>
+                            )}
+                            <Badge variant="secondary">
+                                {completedTests}/{totalTests} tests completed
+                            </Badge>
                         </div>
 
                         <div>
@@ -228,21 +286,27 @@ export default function LabRequestDetail() {
                             className="w-full"
                             variant="outline"
                             onClick={() => assignMutation.mutate()}
-                            disabled={assignMutation.isPending || isAssigned}
+                            disabled={assignMutation.isPending || isAssigned || isResulted}
                         >
                             {assignLabel}
                         </Button>
                     </CardContent>
                 </Card>
 
-                <Card className="lg:col-span-2">
+                <Card className="border-border/60">
                     <CardHeader>
                         <CardTitle className="text-base">Lab Results</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <ScrollArea className="max-h-[500px]">
-                            <div className="space-y-4">
-                                {(diagnostics.diagnosticTests || []).map((test) => {
+                        <ScrollArea>
+                            <Accordion
+                                type="multiple"
+                                value={openTests}
+                                onValueChange={setOpenTests}
+                                className="space-y-3"
+                            >
+                                {(diagnostics.diagnosticTests || []).map((test, index) => {
+                                    const testKey = test.id || `test-${index}`;
                                     const entry = results[test.id || ""] || {
                                         value: "",
                                         unit: "",
@@ -250,136 +314,176 @@ export default function LabRequestDetail() {
                                         upperRange: "",
                                         interpretation: ""
                                     };
+                                    const isTestLocked =
+                                        isResulted ||
+                                        lockedTests.has(test.id || "") ||
+                                        !!test.result ||
+                                        !!test.report;
+                                    const reportUrl = getDiagnosticReportUrl(test.report?.fileUrl);
                                     return (
-                                        <div key={test.id} className="p-4 border rounded-lg space-y-3">
-                                            <div>
-                                                <p className="font-medium">{test.diagnosticTest?.title}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {test.diagnosticTest?.description}
-                                                </p>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div>
-                                                    <Label className="text-xs">Value</Label>
-                                                    <Input
-                                                        value={entry.value}
-                                                        onChange={(e) =>
-                                                            setResults((prev) => ({
-                                                                ...prev,
-                                                                [test.id || ""]: {
-                                                                    ...entry,
-                                                                    value: e.target.value
-                                                                }
-                                                            }))
-                                                        }
-                                                        placeholder="Result value"
-                                                    />
+                                        <AccordionItem key={testKey} value={testKey} className="border rounded-xl">
+                                            <AccordionTrigger className="px-4 py-3 hover:no-underline">
+                                                <div className="flex w-full items-start justify-between gap-3 text-left">
+                                                    <div>
+                                                        <p className="font-medium">{test.diagnosticTest?.title}</p>
+                                                        <p className="text-xs text-muted-foreground">
+                                                            {test.diagnosticTest?.description}
+                                                        </p>
+                                                    </div>
+                                                    <div className="flex items-center gap-2 text-xs">
+                                                        {isTestLocked ? (
+                                                            <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
+                                                                {test.report ? "Report Attached" : "Result Saved"}
+                                                            </Badge>
+                                                        ) : (
+                                                            <Badge variant="secondary">Pending</Badge>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <Label className="text-xs">Unit</Label>
-                                                    <Input
-                                                        value={entry.unit}
-                                                        onChange={(e) =>
-                                                            setResults((prev) => ({
-                                                                ...prev,
-                                                                [test.id || ""]: {
-                                                                    ...entry,
-                                                                    unit: e.target.value
+                                            </AccordionTrigger>
+                                            <AccordionContent className="px-4 pb-4">
+                                                <div className="space-y-3">
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <Label className="text-xs">Value</Label>
+                                                            <Input
+                                                                value={entry.value}
+                                                                onChange={(e) =>
+                                                                    setResults((prev) => ({
+                                                                        ...prev,
+                                                                        [test.id || ""]: {
+                                                                            ...entry,
+                                                                            value: e.target.value
+                                                                        }
+                                                                    }))
                                                                 }
-                                                            }))
-                                                        }
-                                                        placeholder="Unit"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label className="text-xs">Lower Range</Label>
-                                                    <Input
-                                                        value={entry.lowerRange}
-                                                        onChange={(e) =>
-                                                            setResults((prev) => ({
-                                                                ...prev,
-                                                                [test.id || ""]: {
-                                                                    ...entry,
-                                                                    lowerRange: e.target.value
+                                                                placeholder="Result value"
+                                                                disabled={isTestLocked}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-xs">Unit</Label>
+                                                            <Input
+                                                                value={entry.unit}
+                                                                onChange={(e) =>
+                                                                    setResults((prev) => ({
+                                                                        ...prev,
+                                                                        [test.id || ""]: {
+                                                                            ...entry,
+                                                                            unit: e.target.value
+                                                                        }
+                                                                    }))
                                                                 }
-                                                            }))
-                                                        }
-                                                        placeholder="Lower"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <Label className="text-xs">Upper Range</Label>
-                                                    <Input
-                                                        value={entry.upperRange}
-                                                        onChange={(e) =>
-                                                            setResults((prev) => ({
-                                                                ...prev,
-                                                                [test.id || ""]: {
-                                                                    ...entry,
-                                                                    upperRange: e.target.value
+                                                                placeholder="Unit"
+                                                                disabled={isTestLocked}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-xs">Lower Range</Label>
+                                                            <Input
+                                                                value={entry.lowerRange}
+                                                                onChange={(e) =>
+                                                                    setResults((prev) => ({
+                                                                        ...prev,
+                                                                        [test.id || ""]: {
+                                                                            ...entry,
+                                                                            lowerRange: e.target.value
+                                                                        }
+                                                                    }))
                                                                 }
-                                                            }))
-                                                        }
-                                                        placeholder="Upper"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <Label className="text-xs">Interpretation</Label>
-                                                <Textarea
-                                                    value={entry.interpretation}
-                                                    onChange={(e) =>
-                                                        setResults((prev) => ({
-                                                            ...prev,
-                                                            [test.id || ""]: {
-                                                                ...entry,
-                                                                interpretation: e.target.value
+                                                                placeholder="Lower"
+                                                                disabled={isTestLocked}
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <Label className="text-xs">Upper Range</Label>
+                                                            <Input
+                                                                value={entry.upperRange}
+                                                                onChange={(e) =>
+                                                                    setResults((prev) => ({
+                                                                        ...prev,
+                                                                        [test.id || ""]: {
+                                                                            ...entry,
+                                                                            upperRange: e.target.value
+                                                                        }
+                                                                    }))
+                                                                }
+                                                                placeholder="Upper"
+                                                                disabled={isTestLocked}
+                                                            />
+                                                        </div>
+                                                    </div>
+                                                    <div>
+                                                        <Label className="text-xs">Interpretation</Label>
+                                                        <Textarea
+                                                            value={entry.interpretation}
+                                                            onChange={(e) =>
+                                                                setResults((prev) => ({
+                                                                    ...prev,
+                                                                    [test.id || ""]: {
+                                                                        ...entry,
+                                                                        interpretation: e.target.value
+                                                                    }
+                                                                }))
                                                             }
-                                                        }))
-                                                    }
-                                                    placeholder="Interpretation or remarks"
-                                                    rows={2}
-                                                />
-                                            </div>
-                                            <div className="flex flex-wrap gap-2">
-                                                <Button
-                                                    onClick={() =>
-                                                        submitResultMutation.mutate({
-                                                            testId: test.id || "",
-                                                            entry
-                                                        })
-                                                    }
-                                                    disabled={submitResultMutation.isPending}
-                                                >
-                                                    {submitResultMutation.isPending ? (
-                                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                                    ) : (
-                                                        <Save className="h-4 w-4 mr-2" />
-                                                    )}
-                                                    Save Result
-                                                </Button>
-                                                <div>
-                                                    <label className="inline-flex items-center gap-2 cursor-pointer">
-                                                        <input
-                                                            type="file"
-                                                            className="hidden"
-                                                            accept=".pdf,.jpg,.png"
-                                                            onChange={(e) => {
-                                                                const file = e.target.files?.[0];
-                                                                if (file && test.id) {
-                                                                    uploadMutation.mutate({ testId: test.id, file });
-                                                                }
-                                                            }}
+                                                            placeholder="Interpretation or remarks"
+                                                            rows={2}
+                                                            disabled={isTestLocked}
                                                         />
-                                                        <Upload className="h-4 w-4" />
-                                                        Upload Report
-                                                    </label>
+                                                    </div>
+                                                    <div className="flex flex-wrap items-center gap-2">
+                                                        <Button
+                                                            onClick={() =>
+                                                                submitResultMutation.mutate({
+                                                                    testId: test.id || "",
+                                                                    entry
+                                                                })
+                                                            }
+                                                            disabled={submitResultMutation.isPending || isTestLocked}
+                                                        >
+                                                            {submitResultMutation.isPending ? (
+                                                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                                            ) : (
+                                                                <Save className="h-4 w-4 mr-2" />
+                                                            )}
+                                                            {isTestLocked ? "Saved" : "Save Result"}
+                                                        </Button>
+                                                        <div>
+                                                            <label className="inline-flex items-center gap-2 cursor-pointer text-sm text-primary">
+                                                                <input
+                                                                    type="file"
+                                                                    className="hidden"
+                                                                    accept=".pdf,.jpg,.png"
+                                                                    disabled={isTestLocked || uploadMutation.isPending}
+                                                                    onChange={(e) => {
+                                                                        const file = e.target.files?.[0];
+                                                                        if (file && test.id) {
+                                                                            uploadMutation.mutate({ testId: test.id, file });
+                                                                        }
+                                                                    }}
+                                                                />
+                                                                <Upload className="h-4 w-4" />
+                                                                {isTestLocked ? "Report Locked" : "Upload Report"}
+                                                            </label>
+                                                        </div>
+                                                        {reportUrl && (
+                                                            <a
+                                                                href={reportUrl}
+                                                                target="_blank"
+                                                                rel="noreferrer"
+                                                                className="inline-flex items-center gap-2 text-sm text-primary underline-offset-4 hover:underline"
+                                                            >
+                                                                <Download className="h-4 w-4" />
+                                                                Download Report
+                                                            </a>
+                                                        )}
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        </div>
+                                            </AccordionContent>
+                                        </AccordionItem>
                                     );
                                 })}
-                            </div>
+                            </Accordion>
                         </ScrollArea>
 
                         <div className="mt-4">
@@ -390,6 +494,7 @@ export default function LabRequestDetail() {
                                 placeholder="Additional notes..."
                                 rows={3}
                                 className="mt-1"
+                                disabled={isResulted}
                             />
                         </div>
                     </CardContent>

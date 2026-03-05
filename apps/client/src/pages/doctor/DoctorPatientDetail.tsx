@@ -11,12 +11,14 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { ArrowLeft, User, FileText, Pill, FlaskConical, Calendar } from "lucide-react";
+import { ArrowLeft, FileText, Pill, FlaskConical, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
+import { getAvatarUrl } from "@/lib/auth";
 
 interface PrescriptionSummary {
     appointment: AppointmentDto;
@@ -99,9 +101,16 @@ export default function DoctorPatientDetail() {
             <Card>
                 <CardContent className="p-6">
                     <div className="flex items-center gap-4">
-                        <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                            <User className="h-8 w-8 text-primary" />
-                        </div>
+                        <Avatar className="h-16 w-16 ring-2 ring-primary/10">
+                            <AvatarImage src={getAvatarUrl(patient.profileImage?.fileUrl)} alt={patient.name || "Patient"} />
+                            <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
+                                {(patient.name || "Patient")
+                                    .split(" ")
+                                    .map((n) => n[0])
+                                    .join("")
+                                    .slice(0, 2)}
+                            </AvatarFallback>
+                        </Avatar>
                         <div>
                             <h2 className="text-xl font-semibold">{patient.name}</h2>
                             <p className="text-muted-foreground">Patient ID: {patient.id}</p>

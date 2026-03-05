@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams, Link } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -9,12 +9,16 @@ import {
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { ArrowLeft, User, Pill, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { ArrowLeft, User, Pill, Loader2, Calendar, Clock, Stethoscope } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
+import { getAvatarUrl } from "@/lib/auth";
+import { combineDateAndTime } from "@/lib/datetime";
 
 interface PrescriptionDetail {
     appointment: AppointmentDto;
@@ -24,6 +28,7 @@ interface PrescriptionDetail {
 export default function PharmacyPrescriptionDetail() {
     const { id } = useParams<{ id: string }>();
     const queryClient = useQueryClient();
+    const [justDispensed, setJustDispensed] = useState(false);
 
     const { data, isLoading } = useQuery({
         queryKey: ["pharmacy-prescriptions"],
@@ -49,6 +54,7 @@ export default function PharmacyPrescriptionDetail() {
             }),
         onSuccess: (data) => {
             toast.success(getResponseMessage(data));
+            setJustDispensed(true);
             queryClient.invalidateQueries({ queryKey: ["pharmacy-prescriptions"] });
         },
         onError: (error) => toast.error(getErrorMessage(error))
@@ -77,6 +83,14 @@ export default function PharmacyPrescriptionDetail() {
     const { appointment, medication } = prescription;
     const assignedPharmacist =
         medication.pharmacist?.name || medication.pharmacist?.username || medication.pharmacist?.emailAddress;
+    const isDispensed = medication.status === "Collected" || justDispensed;
+    const start = combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime);
+
+    useEffect(() => {
+        if (medication.status !== "Collected") {
+            setJustDispensed(false);
+        }
+    }, [medication.status]);
 
     return (
         <div className="space-y-6 animate-fade-in">
@@ -92,57 +106,76 @@ export default function PharmacyPrescriptionDetail() {
                 />
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-3">
-                <Card>
+            <div className="grid gap-6 lg:grid-cols-[1.1fr_1.9fr]">
+                <Card className="border-border/60">
                     <CardHeader>
-                        <CardTitle className="text-base">Prescription Details</CardTitle>
+                        <CardTitle className="text-base">Prescription Overview</CardTitle>
                     </CardHeader>
-                    <CardContent className="space-y-4">
-                        <div className="flex items-center gap-3">
-                            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                                <User className="h-6 w-6 text-primary" />
-                            </div>
+                    <CardContent className="space-y-5">
+                        <div className="flex items-center gap-4">
+                            <Avatar className="h-14 w-14 ring-2 ring-primary/10">
+                                <AvatarImage
+                                    src={getAvatarUrl(appointment.patient?.profileImage?.fileUrl)}
+                                    alt={appointment.patient?.name || "Patient"}
+                                />
+                                <AvatarFallback className="bg-primary/10 text-primary font-medium">
+                                    {(appointment.patient?.name || "P")
+                                        .split(" ")
+                                        .map((n) => n[0])
+                                        .join("")
+                                        .slice(0, 2)}
+                                </AvatarFallback>
+                            </Avatar>
                             <div>
-                                <p className="font-medium">{appointment.patient?.name}</p>
+                                <p className="font-semibold">{appointment.patient?.name}</p>
                                 <p className="text-sm text-muted-foreground">Patient</p>
                             </div>
                         </div>
 
                         <div className="space-y-2 text-sm">
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Prescribed by</span>
-                                <span>{appointment.doctor?.name}</span>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Stethoscope className="h-4 w-4" />
+                                <span>Prescribed by {appointment.doctor?.name || "Doctor"}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Assigned Pharmacist</span>
-                                <span>{assignedPharmacist || "Unassigned"}</span>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <User className="h-4 w-4" />
+                                <span>Assigned pharmacist: {assignedPharmacist || "Unassigned"}</span>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Date</span>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Calendar className="h-4 w-4" />
                                 <span>
                                     {appointment.bookedDate
                                         ? format(new Date(appointment.bookedDate), "MMM d, yyyy")
                                         : ""}
                                 </span>
                             </div>
-                            <div className="flex justify-between">
-                                <span className="text-muted-foreground">Status</span>
-                                <StatusBadge variant={getStatusVariant(medication.status || "pending")}>
-                                    {medication.status}
-                                </StatusBadge>
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                                <Clock className="h-4 w-4" />
+                                <span>{start ? format(start, "h:mm a") : ""}</span>
                             </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <StatusBadge variant={getStatusVariant(medication.status || "pending")}>
+                                {medication.status}
+                            </StatusBadge>
+                            {isDispensed && (
+                                <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
+                                    Dispensed
+                                </Badge>
+                            )}
                         </div>
                     </CardContent>
                 </Card>
 
-                <Card className="lg:col-span-2">
+                <Card className="border-border/60">
                     <CardHeader>
-                        <CardTitle className="text-base">Medications</CardTitle>
+                        <CardTitle className="text-base">Medication Items</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <div className="space-y-3">
                             {(medication.drugs || []).map((item) => (
-                                <div key={item.id} className="flex items-start justify-between p-4 border rounded-lg">
+                                <div key={item.id} className="flex items-start justify-between p-4 border rounded-xl">
                                     <div>
                                         <p className="font-medium">
                                             {item.medicine?.title} {item.dose}
@@ -160,7 +193,7 @@ export default function PharmacyPrescriptionDetail() {
                             ))}
                         </div>
 
-                        <div>
+                        <div className="rounded-xl border bg-muted/20 p-4">
                             <p className="text-sm text-muted-foreground">Pharmacy Notes</p>
                             <p className="text-sm">{medication.notes || "No notes"}</p>
                         </div>
@@ -168,11 +201,11 @@ export default function PharmacyPrescriptionDetail() {
                         <Button
                             className="w-full"
                             onClick={() => dispenseMutation.mutate()}
-                            disabled={dispenseMutation.isPending}
+                            disabled={dispenseMutation.isPending || isDispensed}
                         >
                             {dispenseMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                             <Pill className="h-4 w-4 mr-2" />
-                            Mark as Dispensed
+                            {isDispensed ? "Already Dispensed" : "Mark as Dispensed"}
                         </Button>
                     </CardContent>
                 </Card>

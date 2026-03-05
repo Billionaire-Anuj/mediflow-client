@@ -3,8 +3,8 @@ import { useParams, Link } from "react-router-dom";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { useMutation, useQuery } from "@tanstack/react-query";
-import { AppointmentService, DiagnosticTestService, MedicineService } from "@mediflow/mediflow-api";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { AppointmentService, AppointmentStatus, DiagnosticTestService, MedicineService } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,11 +16,26 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { ArrowLeft, User, Pill, FlaskConical, Save, Plus, X, Loader2 } from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
+import {
+    ArrowLeft,
+    Pill,
+    FlaskConical,
+    Save,
+    Plus,
+    X,
+    Loader2,
+    Calendar,
+    Clock,
+    Stethoscope
+} from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { combineDateAndTime } from "@/lib/datetime";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
+import { getAvatarUrl } from "@/lib/auth";
 
 const encounterSchema = z.object({
     notes: z.string().min(10, "Notes must be at least 10 characters"),
@@ -43,6 +58,7 @@ interface MedicineItem {
 
 export default function DoctorEncounter() {
     const { appointmentId } = useParams<{ appointmentId: string }>();
+    const queryClient = useQueryClient();
     const [prescriptionOpen, setPrescriptionOpen] = useState(false);
     const [labRequestOpen, setLabRequestOpen] = useState(false);
 
@@ -73,6 +89,25 @@ export default function DoctorEncounter() {
 
     const appointment = appointmentData?.result || null;
     const appointmentDate = combineDateAndTime(appointment?.timeslot?.date, appointment?.timeslot?.startTime);
+    const appointmentEnd = combineDateAndTime(appointment?.timeslot?.date, appointment?.timeslot?.endTime);
+    const patientInitials =
+        appointment?.patient?.name
+            ?.split(" ")
+            .map((n) => n[0])
+            .join("")
+            .slice(0, 2) || "P";
+
+    const isPaid = appointment?.isPaidViaGateway || appointment?.isPaidViaOfflineMedium;
+    const paymentLabel = appointment?.isPaidViaGateway
+        ? "Paid via Credits"
+        : appointment?.isPaidViaOfflineMedium
+          ? "Paid Offline"
+          : "Unpaid";
+    const isEncounterLocked =
+        consultMutation.isSuccess ||
+        appointment?.status === AppointmentStatus.COMPLETED ||
+        appointment?.status === AppointmentStatus.CANCELED ||
+        !!appointment?.medicalRecords;
 
     const {
         register,
@@ -124,6 +159,7 @@ export default function DoctorEncounter() {
         },
         onSuccess: (data) => {
             toast.success(getResponseMessage(data));
+            queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });
         },
         onError: (error) => toast.error(getErrorMessage(error))
     });
@@ -173,120 +209,263 @@ export default function DoctorEncounter() {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <div className="flex items-center gap-4">
-                <Button variant="ghost" size="icon" asChild>
-                    <Link to="/doctor/appointments">
-                        <ArrowLeft className="h-5 w-5" />
-                    </Link>
-                </Button>
-                <PageHeader
-                    title="Patient Encounter"
-                    description={appointmentDate ? format(appointmentDate, "MMMM d, yyyy") : ""}
-                />
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" asChild>
+                        <Link to="/doctor/appointments">
+                            <ArrowLeft className="h-5 w-5" />
+                        </Link>
+                    </Button>
+                    <PageHeader
+                        title="Patient Encounter"
+                        description={appointmentDate ? format(appointmentDate, "MMMM d, yyyy") : ""}
+                    />
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                    <StatusBadge variant={getStatusVariant(appointment.status || "scheduled")}>
+                        {appointment.status}
+                    </StatusBadge>
+                    <Badge
+                        variant={isPaid ? "secondary" : "outline"}
+                        className={
+                            isPaid
+                                ? "bg-emerald-600 text-white hover:bg-emerald-600"
+                                : "border-rose-200 text-rose-600"
+                        }
+                    >
+                        {paymentLabel}
+                    </Badge>
+                </div>
             </div>
 
-            <div className="grid gap-6 lg:grid-cols-4">
-                <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle className="text-base">Patient</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="flex flex-col items-center text-center">
-                            <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-                                <User className="h-8 w-8 text-primary" />
-                            </div>
-                            <h3 className="font-semibold">{appointment.patient?.name}</h3>
-                            <p className="text-sm text-muted-foreground">{appointment.patient?.emailAddress}</p>
-                        </div>
-                    </CardContent>
-                </Card>
+            <div className="grid gap-6 lg:grid-cols-[1.5fr_1fr]">
+                <div className="space-y-6">
+                    {isEncounterLocked && (
+                        <Card className="border-amber-200 bg-amber-50/70">
+                            <CardContent className="p-4 text-sm text-amber-900">
+                                This encounter has been completed. Editing is now locked.
+                            </CardContent>
+                        </Card>
+                    )}
+                    <Card className="border-border/60 shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="text-base">Clinical Notes</CardTitle>
+                            <p className="text-sm text-muted-foreground">
+                                Capture the diagnosis, treatment plan, and supporting notes.
+                            </p>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleSubmit((data) => consultMutation.mutate(data))} className="space-y-4">
+                                <div className="grid gap-4 md:grid-cols-2">
+                                    <div className="space-y-2">
+                                        <Label htmlFor="diagnosis">Diagnosis *</Label>
+                                        <Input
+                                            id="diagnosis"
+                                            {...register("diagnosis")}
+                                            placeholder="Enter diagnosis with ICD code if applicable"
+                                            disabled={isEncounterLocked || consultMutation.isPending}
+                                            className={errors.diagnosis ? "border-destructive" : ""}
+                                        />
+                                        {errors.diagnosis && (
+                                            <p className="text-xs text-destructive">{errors.diagnosis.message}</p>
+                                        )}
+                                    </div>
+                                    <div className="space-y-2">
+                                        <Label htmlFor="treatmentPlan">Treatment Plan *</Label>
+                                        <Input
+                                            id="treatmentPlan"
+                                            {...register("treatmentPlan")}
+                                            placeholder="Outline the treatment approach"
+                                            disabled={isEncounterLocked || consultMutation.isPending}
+                                            className={errors.treatmentPlan ? "border-destructive" : ""}
+                                        />
+                                        {errors.treatmentPlan && (
+                                            <p className="text-xs text-destructive">{errors.treatmentPlan.message}</p>
+                                        )}
+                                    </div>
+                                </div>
 
-                <Card className="lg:col-span-2">
-                    <CardHeader>
-                        <CardTitle className="text-base">Encounter Notes</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <form onSubmit={handleSubmit((data) => consultMutation.mutate(data))} className="space-y-4">
-                            <div className="space-y-2">
-                                <Label htmlFor="notes">Clinical Notes *</Label>
-                                <Textarea
-                                    id="notes"
-                                    {...register("notes")}
-                                    placeholder="Document patient symptoms, examination findings..."
-                                    rows={4}
-                                    className={errors.notes ? "border-destructive" : ""}
-                                />
-                                {errors.notes && <p className="text-xs text-destructive">{errors.notes.message}</p>}
-                            </div>
+                                <div className="space-y-2">
+                                    <Label htmlFor="notes">Clinical Notes *</Label>
+                                    <Textarea
+                                        id="notes"
+                                        {...register("notes")}
+                                        placeholder="Document patient symptoms, examination findings..."
+                                        rows={4}
+                                        disabled={isEncounterLocked || consultMutation.isPending}
+                                        className={errors.notes ? "border-destructive" : ""}
+                                    />
+                                    {errors.notes && <p className="text-xs text-destructive">{errors.notes.message}</p>}
+                                </div>
 
+                                <div className="space-y-2">
+                                    <Label htmlFor="prescriptions">Prescriptions Summary</Label>
+                                    <Input
+                                        id="prescriptions"
+                                        {...register("prescriptions")}
+                                        placeholder="e.g., Continue current medications"
+                                        disabled={isEncounterLocked || consultMutation.isPending}
+                                    />
+                                </div>
+
+                                <Button
+                                    type="submit"
+                                    className="w-full"
+                                    disabled={consultMutation.isPending || isEncounterLocked}
+                                >
+                                    {consultMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+                                    <Save className="h-4 w-4 mr-2" />
+                                    Save Encounter
+                                </Button>
+                            </form>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-border/60 shadow-sm">
+                        <CardHeader>
+                            <div className="flex items-center justify-between">
+                                <CardTitle className="text-base">Orders & Prescriptions</CardTitle>
+                                <Badge variant="secondary">
+                                    {medicines.length} Medications • {selectedTests.length} Diagnostic Tests
+                                </Badge>
+                            </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
                             <div className="space-y-2">
-                                <Label htmlFor="diagnosis">Diagnosis *</Label>
-                                <Input
-                                    id="diagnosis"
-                                    {...register("diagnosis")}
-                                    placeholder="Enter diagnosis with ICD code if applicable"
-                                    className={errors.diagnosis ? "border-destructive" : ""}
-                                />
-                                {errors.diagnosis && (
-                                    <p className="text-xs text-destructive">{errors.diagnosis.message}</p>
+                                <p className="text-sm font-medium">Medications</p>
+                                {medicines.length > 0 ? (
+                                    <div className="space-y-2">
+                                        {medicines.map((med) => (
+                                            <div
+                                                key={med.id}
+                                                className="flex items-center justify-between p-3 bg-accent/50 rounded-lg"
+                                            >
+                                                <div>
+                                                    <p className="font-medium">
+                                                        {med.name} {med.dose}
+                                                    </p>
+                                                    <p className="text-sm text-muted-foreground">
+                                                        {med.frequency} • {med.duration}
+                                                    </p>
+                                                </div>
+                                                <Button variant="ghost" size="icon" onClick={() => removeMedicine(med.id)}>
+                                                    <X className="h-4 w-4" />
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No medications added yet.</p>
                                 )}
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start"
+                                    onClick={() => setPrescriptionOpen(true)}
+                                    disabled={isEncounterLocked}
+                                >
+                                    <Pill className="h-4 w-4 mr-2" />
+                                    Add Medication
+                                </Button>
                             </div>
 
                             <div className="space-y-2">
-                                <Label htmlFor="treatmentPlan">Treatment Plan *</Label>
-                                <Textarea
-                                    id="treatmentPlan"
-                                    {...register("treatmentPlan")}
-                                    placeholder="Outline the treatment approach..."
-                                    rows={3}
-                                    className={errors.treatmentPlan ? "border-destructive" : ""}
-                                />
-                                {errors.treatmentPlan && (
-                                    <p className="text-xs text-destructive">{errors.treatmentPlan.message}</p>
+                                <p className="text-sm font-medium">Lab Requests</p>
+                                {selectedTests.length > 0 ? (
+                                    <div className="flex flex-wrap gap-2">
+                                        {selectedTests.map((testId) => {
+                                            const test = tests.find((t) => t.id === testId);
+                                            return (
+                                                <span key={testId} className="px-2 py-1 rounded bg-accent text-sm">
+                                                    {test?.title || "Test"}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No lab tests selected.</p>
                                 )}
+                                <Button
+                                    variant="outline"
+                                    className="w-full justify-start"
+                                    onClick={() => setLabRequestOpen(true)}
+                                    disabled={isEncounterLocked}
+                                >
+                                    <FlaskConical className="h-4 w-4 mr-2" />
+                                    Order Lab Tests
+                                </Button>
                             </div>
+                        </CardContent>
+                    </Card>
+                </div>
 
-                            <div className="space-y-2">
-                                <Label htmlFor="prescriptions">Prescriptions Summary</Label>
-                                <Input
-                                    id="prescriptions"
-                                    {...register("prescriptions")}
-                                    placeholder="e.g., Continue current medications"
-                                />
+                <div className="space-y-4">
+                    <Card className="border-border/60 shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="text-base">Patient Summary</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-14 w-14 ring-2 ring-primary/10">
+                                    <AvatarImage
+                                        src={getAvatarUrl(appointment.patient?.profileImage?.fileUrl)}
+                                        alt={appointment.patient?.name || "Patient"}
+                                    />
+                                    <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                                        {patientInitials}
+                                    </AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h3 className="font-semibold">{appointment.patient?.name}</h3>
+                                    <p className="text-sm text-muted-foreground">
+                                        {appointment.patient?.emailAddress || "No email on file"}
+                                    </p>
+                                    {appointment.patient?.phoneNumber && (
+                                        <p className="text-sm text-muted-foreground">{appointment.patient.phoneNumber}</p>
+                                    )}
+                                </div>
                             </div>
+                        </CardContent>
+                    </Card>
 
-                            <Button type="submit" className="w-full" disabled={consultMutation.isPending}>
-                                {consultMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-                                <Save className="h-4 w-4 mr-2" />
-                                Save Encounter
-                            </Button>
-                        </form>
-                    </CardContent>
-                </Card>
-
-                <Card className="lg:col-span-1">
-                    <CardHeader>
-                        <CardTitle className="text-base">Actions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-3">
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start"
-                            onClick={() => setPrescriptionOpen(true)}
-                        >
-                            <Pill className="h-4 w-4 mr-2" />
-                            Create Prescription
-                        </Button>
-                        <Button
-                            variant="outline"
-                            className="w-full justify-start"
-                            onClick={() => setLabRequestOpen(true)}
-                        >
-                            <FlaskConical className="h-4 w-4 mr-2" />
-                            Order Lab Tests
-                        </Button>
-                    </CardContent>
-                </Card>
+                    <Card className="border-border/60 shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="text-base">Visit Details</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm text-muted-foreground">
+                            <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4" />
+                                <span>
+                                    {appointmentDate ? format(appointmentDate, "MMMM d, yyyy") : "Date not set"}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Clock className="h-4 w-4" />
+                                <span>
+                                    {appointmentDate && appointmentEnd
+                                        ? `${format(appointmentDate, "h:mm a")} - ${format(appointmentEnd, "h:mm a")}`
+                                        : ""}
+                                </span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <Stethoscope className="h-4 w-4" />
+                                <span>Fee: Rs. {appointment.fee ?? 0}</span>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <span className="text-sm font-medium">Payment:</span>
+                                <Badge
+                                    variant={isPaid ? "secondary" : "outline"}
+                                    className={
+                                        isPaid
+                                            ? "bg-emerald-600 text-white hover:bg-emerald-600"
+                                            : "border-rose-200 text-rose-600"
+                                    }
+                                >
+                                    {paymentLabel}
+                                </Badge>
+                            </div>
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
 
             <Dialog open={prescriptionOpen} onOpenChange={setPrescriptionOpen}>
@@ -296,29 +475,6 @@ export default function DoctorEncounter() {
                         <DialogDescription>Add medications for {appointment.patient?.name}</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
-                        {medicines.length > 0 && (
-                            <div className="space-y-2">
-                                {medicines.map((med) => (
-                                    <div
-                                        key={med.id}
-                                        className="flex items-center justify-between p-3 bg-accent/50 rounded-lg"
-                                    >
-                                        <div>
-                                            <p className="font-medium">
-                                                {med.name} {med.dose}
-                                            </p>
-                                            <p className="text-sm text-muted-foreground">
-                                                {med.frequency} • {med.duration}
-                                            </p>
-                                        </div>
-                                        <Button variant="ghost" size="icon" onClick={() => removeMedicine(med.id)}>
-                                            <X className="h-4 w-4" />
-                                        </Button>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-
                         <div className="grid grid-cols-2 gap-3 p-4 border rounded-lg">
                             <div className="col-span-2">
                                 <Label>Medicine</Label>

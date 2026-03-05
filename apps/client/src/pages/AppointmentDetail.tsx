@@ -1,7 +1,7 @@
 import { useParams, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { AppointmentService, PatientService } from "@mediflow/mediflow-api";
+import { AppointmentService, AppointmentStatus, PatientService } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -16,6 +16,7 @@ import { getErrorMessage, getResponseMessage } from "@/lib/api";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { getDiagnosticReportUrl } from "@/lib/auth";
 
 export default function AppointmentDetail() {
     const { appointmentId } = useParams<{ appointmentId: string }>();
@@ -115,18 +116,6 @@ export default function AppointmentDetail() {
                 <div className="space-y-6">
                     <Card className="border-border/60 shadow-sm">
                         <CardHeader>
-                            <CardTitle className="text-base">Notes & Symptoms</CardTitle>
-                        </CardHeader>
-                        <CardContent className="space-y-3 text-sm text-muted-foreground">
-                            {appointment.notes ? <p>{appointment.notes}</p> : <p>No notes recorded.</p>}
-                            {appointment.cancellationReason && (
-                                <p>Cancellation Reason: {appointment.cancellationReason}</p>
-                            )}
-                        </CardContent>
-                    </Card>
-
-                    <Card className="border-border/60 shadow-sm">
-                        <CardHeader>
                             <CardTitle className="text-base">Care Team</CardTitle>
                         </CardHeader>
                         <CardContent className="space-y-4">
@@ -153,6 +142,18 @@ export default function AppointmentDetail() {
                                     </div>
                                 </div>
                             </div>
+                        </CardContent>
+                    </Card>
+
+                    <Card className="border-border/60 shadow-sm">
+                        <CardHeader>
+                            <CardTitle className="text-base">Notes & Symptoms</CardTitle>
+                        </CardHeader>
+                        <CardContent className="space-y-3 text-sm text-muted-foreground">
+                            {appointment.notes ? <p>{appointment.notes}</p> : <p>No notes recorded.</p>}
+                            {appointment.cancellationReason && (
+                                <p>Cancellation Reason: {appointment.cancellationReason}</p>
+                            )}
                         </CardContent>
                     </Card>
 
@@ -215,6 +216,16 @@ export default function AppointmentDetail() {
                                                             • {test.result.value} {test.result.unit}
                                                         </span>
                                                     )}
+                                                    {test.report?.fileUrl && (
+                                                        <a
+                                                            href={getDiagnosticReportUrl(test.report.fileUrl)}
+                                                            target="_blank"
+                                                            rel="noreferrer"
+                                                            className="ml-2 text-xs text-primary underline-offset-4 hover:underline"
+                                                        >
+                                                            Download report
+                                                        </a>
+                                                    )}
                                                 </div>
                                             ))}
                                         </div>
@@ -234,12 +245,14 @@ export default function AppointmentDetail() {
                             <CardContent className="space-y-2">
                                 {appointment.medicalRecords.diagnosis && (
                                     <p className="text-sm">
-                                        <span className="font-medium">Diagnosis:</span> {appointment.medicalRecords.diagnosis}
+                                        <span className="font-medium">Diagnosis:</span>{" "}
+                                        {appointment.medicalRecords.diagnosis}
                                     </p>
                                 )}
                                 {appointment.medicalRecords.treatment && (
                                     <p className="text-sm">
-                                        <span className="font-medium">Treatment:</span> {appointment.medicalRecords.treatment}
+                                        <span className="font-medium">Treatment:</span>{" "}
+                                        {appointment.medicalRecords.treatment}
                                     </p>
                                 )}
                                 {appointment.medicalRecords.prescriptions && (
@@ -288,11 +301,7 @@ export default function AppointmentDetail() {
                                 Fee: NPR {appointment.fee?.toFixed(2) ?? "0.00"}
                             </div>
                             {appointment.status === "Scheduled" && (
-                                <Button
-                                    size="sm"
-                                    variant="destructive"
-                                    onClick={() => setCancelDialogOpen(true)}
-                                >
+                                <Button size="sm" variant="destructive" onClick={() => setCancelDialogOpen(true)}>
                                     Cancel Appointment
                                 </Button>
                             )}
@@ -320,23 +329,25 @@ export default function AppointmentDetail() {
                                 <span>Available credits</span>
                                 <span>{creditPoints.toFixed(2)}</span>
                             </div>
-                            {!isPaid && (appointment.fee ?? 0) > 0 && (
-                                <div className="space-y-2">
-                                    <Button
-                                        variant="outline"
-                                        size="sm"
-                                        disabled={!canPayWithCredits || payWithCreditsMutation.isPending}
-                                        onClick={() => payWithCreditsMutation.mutate()}
-                                    >
-                                        {payWithCreditsMutation.isPending ? "Processing..." : "Pay with Credits"}
-                                    </Button>
-                                    {!canPayWithCredits && (
-                                        <p className="text-xs text-muted-foreground">
-                                            Not enough credits to complete payment.
-                                        </p>
-                                    )}
-                                </div>
-                            )}
+                            {!isPaid &&
+                                (appointment.fee ?? 0) > 0 &&
+                                appointment.status !== AppointmentStatus.COMPLETED && (
+                                    <div className="space-y-2">
+                                        <Button
+                                            variant="outline"
+                                            size="sm"
+                                            disabled={!canPayWithCredits || payWithCreditsMutation.isPending}
+                                            onClick={() => payWithCreditsMutation.mutate()}
+                                        >
+                                            {payWithCreditsMutation.isPending ? "Processing..." : "Pay with Credits"}
+                                        </Button>
+                                        {!canPayWithCredits && (
+                                            <p className="text-xs text-muted-foreground">
+                                                Not enough credits to complete payment.
+                                            </p>
+                                        )}
+                                    </div>
+                                )}
                         </CardContent>
                     </Card>
                 </div>
@@ -357,6 +368,10 @@ export default function AppointmentDetail() {
                                 onChange={(event) => setCancellationReason(event.target.value)}
                             />
                         </div>
+                        <p className="text-sm text-muted-foreground">
+                            Refund policy: Cancel 2 days before the booking for a full refund. Cancel within 2 days for
+                            a 50% refund. Same-day cancellations are not refundable.
+                        </p>
                         <div className="flex justify-end gap-2">
                             <Button variant="outline" onClick={() => setCancelDialogOpen(false)}>
                                 Close

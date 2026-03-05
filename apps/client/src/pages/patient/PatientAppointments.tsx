@@ -108,17 +108,29 @@ export default function PatientAppointments() {
                 const doctorName = apt.doctor?.name?.toLowerCase() ?? "";
                 const doctorEmail = apt.doctor?.emailAddress?.toLowerCase() ?? "";
                 const specialization =
-                    (apt.doctor?.specializations || [])
-                        .map((spec) => spec.title?.toLowerCase())
-                        .join(" ") ?? "";
-                if (!doctorName.includes(searchValue) && !doctorEmail.includes(searchValue) && !specialization.includes(searchValue)) {
+                    (apt.doctor?.specializations || []).map((spec) => spec.title?.toLowerCase()).join(" ") ?? "";
+                if (
+                    !doctorName.includes(searchValue) &&
+                    !doctorEmail.includes(searchValue) &&
+                    !specialization.includes(searchValue)
+                ) {
                     return false;
                 }
             }
 
             return true;
         });
-    }, [appointments, dateRange?.from, dateRange?.to, maxFee, minFee, paymentFilter, searchText, selectedDoctorId, statusFilter]);
+    }, [
+        appointments,
+        dateRange?.from,
+        dateRange?.to,
+        maxFee,
+        minFee,
+        paymentFilter,
+        searchText,
+        selectedDoctorId,
+        statusFilter
+    ]);
 
     const [upcomingAppointments, pastAppointments] = useMemo(() => {
         const upcoming: AppointmentDto[] = [];
@@ -136,7 +148,8 @@ export default function PatientAppointments() {
         const sortMultiplier = sortOrder === "latest" ? -1 : 1;
         const sortFn = (a: AppointmentDto, b: AppointmentDto) =>
             ((combineDateAndTime(a.timeslot?.date, a.timeslot?.startTime)?.getTime() || 0) -
-                (combineDateAndTime(b.timeslot?.date, b.timeslot?.startTime)?.getTime() || 0)) * sortMultiplier;
+                (combineDateAndTime(b.timeslot?.date, b.timeslot?.startTime)?.getTime() || 0)) *
+            sortMultiplier;
 
         return [upcoming.sort(sortFn), past.sort(sortFn)];
     }, [filteredAppointments, sortOrder]);
@@ -346,7 +359,11 @@ export default function PatientAppointments() {
                                 </div>
                                 <div className="space-y-1">
                                     <Label>Date Range</Label>
-                                    <DateRangePicker value={dateRange} onChange={setDateRange} placeholder="Select range" />
+                                    <DateRangePicker
+                                        value={dateRange}
+                                        onChange={setDateRange}
+                                        placeholder="Select range"
+                                    />
                                 </div>
                                 <div className="space-y-1">
                                     <Label>Min Fee (NPR)</Label>
@@ -447,13 +464,31 @@ export default function PatientAppointments() {
                                                             <p className="text-xs uppercase text-muted-foreground">
                                                                 {format(start, "EEE")}
                                                             </p>
-                                                            <p className="text-2xl font-semibold">{format(start, "d")}</p>
+                                                            <p className="text-2xl font-semibold">
+                                                                {format(start, "d")}
+                                                            </p>
                                                             <p className="text-xs text-muted-foreground">
                                                                 {format(start, "MMM yyyy")}
                                                             </p>
+                                                            <StatusBadge
+                                                                variant={getStatusVariant(
+                                                                    appointment.status || "scheduled"
+                                                                )}
+                                                            >
+                                                                {appointment.status}
+                                                            </StatusBadge>
                                                         </>
                                                     ) : (
-                                                        <p className="text-xs text-muted-foreground">TBD</p>
+                                                        <>
+                                                            <p className="text-xs text-muted-foreground">TBD</p>
+                                                            <StatusBadge
+                                                                variant={getStatusVariant(
+                                                                    appointment.status || "scheduled"
+                                                                )}
+                                                            >
+                                                                {appointment.status}
+                                                            </StatusBadge>
+                                                        </>
                                                     )}
                                                 </div>
                                                 <div className="flex-1 space-y-2">
@@ -461,7 +496,9 @@ export default function PatientAppointments() {
                                                         <Avatar className="h-12 w-12">
                                                             {appointment.doctor?.profileImage?.fileUrl && (
                                                                 <AvatarImage
-                                                                    src={getAvatarUrl(appointment.doctor.profileImage.fileUrl)}
+                                                                    src={getAvatarUrl(
+                                                                        appointment.doctor.profileImage.fileUrl
+                                                                    )}
                                                                     alt={appointment.doctor?.name || "Doctor"}
                                                                 />
                                                             )}
@@ -519,23 +556,19 @@ export default function PatientAppointments() {
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <StatusBadge variant={getStatusVariant(appointment.status || "scheduled")}>
-                                                    {appointment.status}
-                                                </StatusBadge>
                                                 {!isPaid && appointment.status === "Scheduled" && (
                                                     <Button
                                                         size="sm"
                                                         variant="outline"
-                                                        disabled={!canPayWithCredits || payWithCreditsMutation.isPending}
+                                                        disabled={
+                                                            !canPayWithCredits || payWithCreditsMutation.isPending
+                                                        }
                                                         onClick={() => payWithCreditsMutation.mutate(appointment)}
                                                     >
                                                         {payWithCreditsMutation.isPending
                                                             ? "Processing..."
                                                             : "Pay with Credits"}
                                                     </Button>
-                                                )}
-                                                {!isPaid && !canPayWithCredits && appointment.status === "Scheduled" && (
-                                                    <span className="text-xs text-muted-foreground">Add credits to pay.</span>
                                                 )}
                                                 {appointment.status === "Scheduled" && (
                                                     <>
@@ -593,8 +626,7 @@ export default function PatientAppointments() {
                                 appointment.timeslot?.date,
                                 appointment.timeslot?.startTime
                             );
-                            const canReview =
-                                appointment.status === "Completed" && !appointment.hasReview;
+                            const canReview = appointment.status === "Completed" && !appointment.hasReview;
                             const reviewCount = appointment.doctor?.reviewCount ?? 0;
                             const averageRating = appointment.doctor?.averageRating ?? 0;
                             const isPaid = appointment.isPaidViaGateway || appointment.isPaidViaOfflineMedium;
@@ -610,7 +642,9 @@ export default function PatientAppointments() {
                                                             <p className="text-xs uppercase text-muted-foreground">
                                                                 {format(start, "EEE")}
                                                             </p>
-                                                            <p className="text-2xl font-semibold">{format(start, "d")}</p>
+                                                            <p className="text-2xl font-semibold">
+                                                                {format(start, "d")}
+                                                            </p>
                                                             <p className="text-xs text-muted-foreground">
                                                                 {format(start, "MMM yyyy")}
                                                             </p>
@@ -624,7 +658,9 @@ export default function PatientAppointments() {
                                                         <Avatar className="h-12 w-12">
                                                             {appointment.doctor?.profileImage?.fileUrl && (
                                                                 <AvatarImage
-                                                                    src={getAvatarUrl(appointment.doctor.profileImage.fileUrl)}
+                                                                    src={getAvatarUrl(
+                                                                        appointment.doctor.profileImage.fileUrl
+                                                                    )}
                                                                     alt={appointment.doctor?.name || "Doctor"}
                                                                 />
                                                             )}
@@ -725,6 +761,10 @@ export default function PatientAppointments() {
                             value={cancellationReason}
                             onChange={(e) => setCancellationReason(e.target.value)}
                         />
+                        <p className="text-sm text-muted-foreground">
+                            Refund policy: Cancel 2 days before the booking for a full refund. Cancel within 2 days for
+                            a 50% refund. Same-day cancellations are not refundable.
+                        </p>
                         <div className="flex justify-end gap-2">
                             <Button variant="outline" onClick={() => setCanceling(null)}>
                                 Close
@@ -816,9 +856,7 @@ export default function PatientAppointments() {
                                 <p className="font-medium">All Doctors</p>
                                 <p className="text-xs text-muted-foreground">Show every appointment</p>
                             </div>
-                            {selectedDoctorId === "all" && (
-                                <span className="text-xs text-primary">Selected</span>
-                            )}
+                            {selectedDoctorId === "all" && <span className="text-xs text-primary">Selected</span>}
                         </button>
                         {doctors.map((doctor) => {
                             const isSelected = doctor.id === selectedDoctorId;
@@ -885,9 +923,7 @@ export default function PatientAppointments() {
                 <DialogContent>
                     <DialogHeader>
                         <DialogTitle>Leave a Review</DialogTitle>
-                        <DialogDescription>
-                            Share your feedback about this completed appointment.
-                        </DialogDescription>
+                        <DialogDescription>Share your feedback about this completed appointment.</DialogDescription>
                     </DialogHeader>
                     <div className="space-y-4">
                         <div className="space-y-2">
