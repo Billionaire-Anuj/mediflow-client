@@ -24,6 +24,8 @@ export type DoctorProfileDto = {
     educationInformation?: string | null;
     experienceInformation?: string | null;
     consultationFee?: number;
+    averageRating?: number;
+    reviewCount?: number;
     schedules?: Array<ScheduleDto> | null;
     specializations?: Array<SpecializationDto> | null;
 };

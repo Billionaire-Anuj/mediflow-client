@@ -22,7 +22,9 @@ import NotFound from "./pages/NotFound";
 // Patient pages
 import PatientDashboard from "./pages/patient/PatientDashboard";
 import PatientDoctors from "./pages/patient/PatientDoctors";
+import PatientDoctorProfile from "./pages/patient/PatientDoctorProfile";
 import PatientAppointments from "./pages/patient/PatientAppointments";
+import PatientBookAppointment from "./pages/patient/PatientBookAppointment";
 import PatientRecords from "./pages/patient/PatientRecords";
 import PatientNotifications from "./pages/patient/PatientNotifications";
 import PatientProfile from "./pages/patient/PatientProfile";
@@ -91,7 +93,9 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route index element={<Navigate to="/patient/dashboard" replace />} />
                                 <Route path="dashboard" element={<PatientDashboard />} />
                                 <Route path="doctors" element={<PatientDoctors />} />
+                                <Route path="doctors/:doctorId" element={<PatientDoctorProfile />} />
                                 <Route path="appointments" element={<PatientAppointments />} />
+                                <Route path="appointments/book" element={<PatientBookAppointment />} />
                                 <Route path="appointments/:appointmentId" element={<AppointmentDetail />} />
                                 <Route path="records" element={<PatientRecords />} />
                                 <Route path="notifications" element={<PatientNotifications />} />

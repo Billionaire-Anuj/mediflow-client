@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { DayOfWeek, DoctorService, type CreateScheduleDto, type ScheduleDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
@@ -9,11 +9,22 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
+import { DatePicker, DateRangePicker } from "@/components/ui/date-picker";
+import { TimeRangePicker } from "@/components/ui/time-picker";
 import { toast } from "sonner";
-import { format } from "date-fns";
+import { isAfter } from "date-fns";
+import type { DateRange } from "react-day-picker";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
+import { formatDateOnly, parseDateOnly } from "@/lib/datetime";
 
 const dayOptions = Object.values(DayOfWeek);
+
+const parseTimeToMinutes = (time?: string) => {
+    if (!time) return null;
+    const [hours, minutes] = time.split(":").map((value) => Number(value));
+    if (Number.isNaN(hours) || Number.isNaN(minutes)) return null;
+    return hours * 60 + minutes;
+};
 
 export default function DoctorSchedule() {
     const queryClient = useQueryClient();
@@ -24,8 +35,10 @@ export default function DoctorSchedule() {
         slotDurationInMinutes: 30
     });
     const [editingSchedule, setEditingSchedule] = useState<ScheduleDto | null>(null);
-    const [timeslotStart, setTimeslotStart] = useState(format(new Date(), "yyyy-MM-dd"));
-    const [timeslotEnd, setTimeslotEnd] = useState(format(new Date(), "yyyy-MM-dd"));
+    const [scheduleRange, setScheduleRange] = useState<DateRange | undefined>();
+    const [editingRange, setEditingRange] = useState<DateRange | undefined>();
+    const [timeslotStart, setTimeslotStart] = useState<Date | undefined>(new Date());
+    const [timeslotEnd, setTimeslotEnd] = useState<Date | undefined>(new Date());
 
     const { data: profileData, isLoading } = useQuery({
         queryKey: ["doctor-profile"],
@@ -34,27 +47,90 @@ export default function DoctorSchedule() {
 
     const doctorId = profileData?.result?.id || "";
 
+    const timeslotStartValue = formatDateOnly(timeslotStart);
+    const timeslotEndValue = formatDateOnly(timeslotEnd);
+    const timeslotRangeError = useMemo(() => {
+        if (!timeslotStart || !timeslotEnd) return "Select a start and end date.";
+        if (isAfter(timeslotStart, timeslotEnd)) return "Start date cannot be after the end date.";
+        return "";
+    }, [timeslotEnd, timeslotStart]);
+
     const { data: timeslotData, isFetching: timeslotLoading } = useQuery({
-        queryKey: ["doctor-timeslots", doctorId, timeslotStart, timeslotEnd],
-        enabled: Boolean(doctorId && timeslotStart && timeslotEnd),
+        queryKey: ["doctor-timeslots", doctorId, timeslotStartValue, timeslotEndValue],
+        enabled: Boolean(doctorId && timeslotStartValue && timeslotEndValue && !timeslotRangeError),
         queryFn: async () =>
             DoctorService.getDoctorTimeslots({
-                startDate: timeslotStart,
-                endDate: timeslotEnd
+                startDate: timeslotStartValue,
+                endDate: timeslotEndValue
             })
     });
 
     const schedules = profileData?.result?.schedules ?? [];
     const timeslots = timeslotData?.result ?? [];
 
+    const scheduleRangeError = useMemo(() => {
+        if (!scheduleRange?.from || !scheduleRange?.to) return "Select a valid start and end date.";
+        if (isAfter(scheduleRange.from, scheduleRange.to)) return "Start date must be before end date.";
+        return "";
+    }, [scheduleRange?.from, scheduleRange?.to]);
+
+    const scheduleTimeError = useMemo(() => {
+        const startMinutes = parseTimeToMinutes(newSchedule.startTime);
+        const endMinutes = parseTimeToMinutes(newSchedule.endTime);
+        if (startMinutes === null || endMinutes === null) return "Enter a start and end time.";
+        if (startMinutes >= endMinutes) return "End time must be after the start time.";
+        return "";
+    }, [newSchedule.endTime, newSchedule.startTime]);
+
+    const scheduleDurationError = useMemo(() => {
+        if (!newSchedule.slotDurationInMinutes || newSchedule.slotDurationInMinutes <= 0) {
+            return "Slot duration must be greater than 0.";
+        }
+        return "";
+    }, [newSchedule.slotDurationInMinutes]);
+
+    const canCreateSchedule = !scheduleRangeError && !scheduleTimeError && !scheduleDurationError;
+
     const createMutation = useMutation({
-        mutationFn: async () => DoctorService.createDoctorSchedule({ requestBody: newSchedule }),
+        mutationFn: async () =>
+            DoctorService.createDoctorSchedule({
+                requestBody: {
+                    ...newSchedule,
+                    validStartDate: formatDateOnly(scheduleRange?.from),
+                    validEndDate: formatDateOnly(scheduleRange?.to)
+                }
+            }),
         onSuccess: (data) => {
             toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["doctor-profile"] });
         },
         onError: (error) => toast.error(getErrorMessage(error))
     });
+
+    const editingRangeError = useMemo(() => {
+        if (!editingRange?.from || !editingRange?.to) return "Select a valid start and end date.";
+        if (isAfter(editingRange.from, editingRange.to)) return "Start date must be before end date.";
+        return "";
+    }, [editingRange?.from, editingRange?.to]);
+
+    const editingTimeError = useMemo(() => {
+        if (!editingSchedule) return "";
+        const startMinutes = parseTimeToMinutes(editingSchedule.startTime);
+        const endMinutes = parseTimeToMinutes(editingSchedule.endTime);
+        if (startMinutes === null || endMinutes === null) return "Enter a start and end time.";
+        if (startMinutes >= endMinutes) return "End time must be after the start time.";
+        return "";
+    }, [editingSchedule]);
+
+    const editingDurationError = useMemo(() => {
+        if (!editingSchedule) return "";
+        if (!editingSchedule.slotDurationInMinutes || editingSchedule.slotDurationInMinutes <= 0) {
+            return "Slot duration must be greater than 0.";
+        }
+        return "";
+    }, [editingSchedule]);
+
+    const canUpdateSchedule = !editingRangeError && !editingTimeError && !editingDurationError;
 
     const updateMutation = useMutation({
         mutationFn: async () =>
@@ -66,8 +142,8 @@ export default function DoctorSchedule() {
                     startTime: editingSchedule?.startTime,
                     endTime: editingSchedule?.endTime,
                     slotDurationInMinutes: editingSchedule?.slotDurationInMinutes,
-                    validStartDate: editingSchedule?.validStartDate,
-                    validEndDate: editingSchedule?.validEndDate,
+                    validStartDate: formatDateOnly(editingRange?.from),
+                    validEndDate: formatDateOnly(editingRange?.to),
                     notes: editingSchedule?.notes
                 }
             }),
@@ -78,6 +154,18 @@ export default function DoctorSchedule() {
         },
         onError: (error) => toast.error(getErrorMessage(error))
     });
+
+    useEffect(() => {
+        if (!editingSchedule) {
+            setEditingRange(undefined);
+            return;
+        }
+
+        setEditingRange({
+            from: parseDateOnly(editingSchedule.validStartDate) ?? undefined,
+            to: parseDateOnly(editingSchedule.validEndDate) ?? undefined
+        });
+    }, [editingSchedule]);
 
     if (isLoading) {
         return (
@@ -132,46 +220,36 @@ export default function DoctorSchedule() {
                                         }))
                                     }
                                 />
+                                {scheduleDurationError && (
+                                    <p className="mt-1 text-xs text-destructive">{scheduleDurationError}</p>
+                                )}
                             </div>
-                            <div>
-                                <Label>Start Time</Label>
-                                <Input
-                                    type="time"
-                                    value={newSchedule.startTime || ""}
-                                    placeholder="09:00"
-                                    onChange={(e) => setNewSchedule((prev) => ({ ...prev, startTime: e.target.value }))}
-                                />
-                            </div>
-                            <div>
-                                <Label>End Time</Label>
-                                <Input
-                                    type="time"
-                                    value={newSchedule.endTime || ""}
-                                    placeholder="17:00"
-                                    onChange={(e) => setNewSchedule((prev) => ({ ...prev, endTime: e.target.value }))}
-                                />
-                            </div>
-                            <div>
-                                <Label>Valid Start Date</Label>
-                                <Input
-                                    type="date"
-                                    value={newSchedule.validStartDate || ""}
-                                    placeholder="Select start date"
-                                    onChange={(e) =>
-                                        setNewSchedule((prev) => ({ ...prev, validStartDate: e.target.value }))
+                            <div className="sm:col-span-2">
+                                <Label>Time Range</Label>
+                                <TimeRangePicker
+                                    startValue={newSchedule.startTime || ""}
+                                    endValue={newSchedule.endTime || ""}
+                                    onStartChange={(value) =>
+                                        setNewSchedule((prev) => ({ ...prev, startTime: value }))
                                     }
+                                    onEndChange={(value) => setNewSchedule((prev) => ({ ...prev, endTime: value }))}
                                 />
                             </div>
-                            <div>
-                                <Label>Valid End Date</Label>
-                                <Input
-                                    type="date"
-                                    value={newSchedule.validEndDate || ""}
-                                    placeholder="Select end date"
-                                    onChange={(e) =>
-                                        setNewSchedule((prev) => ({ ...prev, validEndDate: e.target.value }))
-                                    }
+                            {scheduleTimeError && (
+                                <div className="sm:col-span-2">
+                                    <p className="text-xs text-destructive">{scheduleTimeError}</p>
+                                </div>
+                            )}
+                            <div className="sm:col-span-2">
+                                <Label>Valid Date Range</Label>
+                                <DateRangePicker
+                                    value={scheduleRange}
+                                    onChange={setScheduleRange}
+                                    placeholder="Select valid date range"
                                 />
+                                {scheduleRangeError && (
+                                    <p className="mt-1 text-xs text-destructive">{scheduleRangeError}</p>
+                                )}
                             </div>
                         </div>
                         <div>
@@ -182,7 +260,10 @@ export default function DoctorSchedule() {
                                 onChange={(e) => setNewSchedule((prev) => ({ ...prev, notes: e.target.value }))}
                             />
                         </div>
-                        <Button onClick={() => createMutation.mutate()} disabled={createMutation.isPending}>
+                        <Button
+                            onClick={() => createMutation.mutate()}
+                            disabled={createMutation.isPending || !canCreateSchedule}
+                        >
                             {createMutation.isPending ? "Saving..." : "Create Schedule"}
                         </Button>
                     </CardContent>
@@ -223,23 +304,22 @@ export default function DoctorSchedule() {
                     <div className="grid gap-4 sm:grid-cols-2">
                         <div>
                             <Label>Start Date</Label>
-                            <Input
-                                type="date"
+                            <DatePicker
                                 value={timeslotStart}
+                                onChange={(value) => setTimeslotStart(value ?? undefined)}
                                 placeholder="Select start date"
-                                onChange={(e) => setTimeslotStart(e.target.value)}
                             />
                         </div>
                         <div>
                             <Label>End Date</Label>
-                            <Input
-                                type="date"
+                            <DatePicker
                                 value={timeslotEnd}
+                                onChange={(value) => setTimeslotEnd(value ?? undefined)}
                                 placeholder="Select end date"
-                                onChange={(e) => setTimeslotEnd(e.target.value)}
                             />
                         </div>
                     </div>
+                    {timeslotRangeError && <p className="text-xs text-destructive">{timeslotRangeError}</p>}
                     {timeslotLoading ? (
                         <p className="text-sm text-muted-foreground">Loading timeslots...</p>
                     ) : (
@@ -292,34 +372,24 @@ export default function DoctorSchedule() {
                                     </SelectContent>
                                 </Select>
                             </div>
-                            <div className="grid gap-4 sm:grid-cols-2">
-                                <div>
-                                    <Label>Start Time</Label>
-                                    <Input
-                                        type="time"
-                                        value={editingSchedule.startTime || ""}
-                                        placeholder="09:00"
-                                        onChange={(e) =>
-                                            setEditingSchedule((prev) =>
-                                                prev ? { ...prev, startTime: e.target.value } : prev
-                                            )
-                                        }
-                                    />
-                                </div>
-                                <div>
-                                    <Label>End Time</Label>
-                                    <Input
-                                        type="time"
-                                        value={editingSchedule.endTime || ""}
-                                        placeholder="17:00"
-                                        onChange={(e) =>
-                                            setEditingSchedule((prev) =>
-                                                prev ? { ...prev, endTime: e.target.value } : prev
-                                            )
-                                        }
-                                    />
-                                </div>
+                            <div>
+                                <Label>Time Range</Label>
+                                <TimeRangePicker
+                                    startValue={editingSchedule.startTime || ""}
+                                    endValue={editingSchedule.endTime || ""}
+                                    onStartChange={(value) =>
+                                        setEditingSchedule((prev) =>
+                                            prev ? { ...prev, startTime: value } : prev
+                                        )
+                                    }
+                                    onEndChange={(value) =>
+                                        setEditingSchedule((prev) =>
+                                            prev ? { ...prev, endTime: value } : prev
+                                        )
+                                    }
+                                />
                             </div>
+                            {editingTimeError && <p className="text-xs text-destructive">{editingTimeError}</p>}
                             <div>
                                 <Label>Slot Duration (minutes)</Label>
                                 <Input
@@ -332,12 +402,41 @@ export default function DoctorSchedule() {
                                         )
                                     }
                                 />
+                                {editingDurationError && (
+                                    <p className="mt-1 text-xs text-destructive">{editingDurationError}</p>
+                                )}
+                            </div>
+                            <div>
+                                <Label>Valid Date Range</Label>
+                                <DateRangePicker
+                                    value={editingRange}
+                                    onChange={setEditingRange}
+                                    placeholder="Select valid date range"
+                                />
+                                {editingRangeError && (
+                                    <p className="mt-1 text-xs text-destructive">{editingRangeError}</p>
+                                )}
+                            </div>
+                            <div>
+                                <Label>Notes</Label>
+                                <Input
+                                    value={editingSchedule.notes || ""}
+                                    placeholder="Additional notes"
+                                    onChange={(e) =>
+                                        setEditingSchedule((prev) =>
+                                            prev ? { ...prev, notes: e.target.value } : prev
+                                        )
+                                    }
+                                />
                             </div>
                             <DialogFooter>
                                 <Button variant="outline" onClick={() => setEditingSchedule(null)}>
                                     Cancel
                                 </Button>
-                                <Button onClick={() => updateMutation.mutate()} disabled={updateMutation.isPending}>
+                                <Button
+                                    onClick={() => updateMutation.mutate()}
+                                    disabled={updateMutation.isPending || !canUpdateSchedule}
+                                >
                                     {updateMutation.isPending ? "Saving..." : "Save"}
                                 </Button>
                             </DialogFooter>

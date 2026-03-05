@@ -41,6 +41,7 @@ export type { CreateAppointmentMedicationDrugsDto } from "./models/CreateAppoint
 export type { CreateAppointmentMedicationsDto } from "./models/CreateAppointmentMedicationsDto";
 export type { CreateDiagnosticTestDto } from "./models/CreateDiagnosticTestDto";
 export type { CreateDiagnosticTypeDto } from "./models/CreateDiagnosticTypeDto";
+export type { CreateDoctorReviewDto } from "./models/CreateDoctorReviewDto";
 export type { CreateMedicationTypeDto } from "./models/CreateMedicationTypeDto";
 export type { CreateMedicineDto } from "./models/CreateMedicineDto";
 export type { CreateRoleDto } from "./models/CreateRoleDto";
@@ -63,6 +64,8 @@ export type { DoctorProfileDtoListResponseDto } from "./models/DoctorProfileDtoL
 export type { DoctorProfileDtoResponseDto } from "./models/DoctorProfileDtoResponseDto";
 export type { DoctorRecommendationResultDto } from "./models/DoctorRecommendationResultDto";
 export type { DoctorRecommendationResultDtoResponseDto } from "./models/DoctorRecommendationResultDtoResponseDto";
+export type { DoctorReviewDto } from "./models/DoctorReviewDto";
+export type { DoctorReviewDtoListResponseDto } from "./models/DoctorReviewDtoListResponseDto";
 export type { EmailConfirmationVerificationDto } from "./models/EmailConfirmationVerificationDto";
 export type { EmailOutboxDto } from "./models/EmailOutboxDto";
 export type { EmailOutboxDtoCollectionDto } from "./models/EmailOutboxDtoCollectionDto";
@@ -144,6 +147,7 @@ export { DiagnosticTestService } from "./services/DiagnosticTestService";
 export { DiagnosticTypeService } from "./services/DiagnosticTypeService";
 export { DoctorService } from "./services/DoctorService";
 export { DoctorRecommendationService } from "./services/DoctorRecommendationService";
+export { DoctorReviewService } from "./services/DoctorReviewService";
 export { EmailOutboxService } from "./services/EmailOutboxService";
 export { MedicationTypeService } from "./services/MedicationTypeService";
 export { MedicineService } from "./services/MedicineService";

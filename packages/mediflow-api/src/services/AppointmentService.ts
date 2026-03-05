@@ -207,4 +207,24 @@ export class AppointmentService {
             mediaType: "application/json"
         });
     }
+
+    /**
+     * PayAppointmentWithCredits
+     * Pays for an appointment using patient credits.
+     * @returns BooleanResponseDto OK
+     * @throws ApiError
+     */
+    public static payAppointmentWithCredits({
+        appointmentId
+    }: {
+        appointmentId: string;
+    }): CancelablePromise<BooleanResponseDto> {
+        return __request(OpenAPI, {
+            method: "PATCH",
+            url: "/api/v1/appointment/{appointmentId}/pay/credits",
+            path: {
+                appointmentId: appointmentId
+            }
+        });
+    }
 }

@@ -24,6 +24,8 @@ export type AppointmentDto = {
     isPaidViaGateway?: boolean;
     isPaidViaOfflineMedium?: boolean;
     cancellationReason?: string | null;
+    hasReview?: boolean;
+    reviewRating?: number | null;
     medicalRecords?: MedicalRecordDto;
     medications?: Array<AppointmentMedicationsDto> | null;
     diagnostics?: Array<AppointmentDiagnosticsDto> | null;
