@@ -51,9 +51,13 @@ import PharmacyPrescriptionDetail from "./pages/pharmacy/PharmacyPrescriptionDet
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminDoctors from "./pages/admin/AdminDoctors";
-import AdminConfig from "./pages/admin/AdminConfig";
 import AdminReports from "./pages/admin/AdminReports";
 import AdminAuditLogs from "./pages/admin/AdminAuditLogs";
+import AdminSpecializations from "./pages/admin/AdminSpecializations";
+import AdminDiagnosticTypes from "./pages/admin/AdminDiagnosticTypes";
+import AdminDiagnosticTests from "./pages/admin/AdminDiagnosticTests";
+import AdminMedicationTypes from "./pages/admin/AdminMedicationTypes";
+import AdminMedicines from "./pages/admin/AdminMedicines";
 import { AppShell } from "@/components/layout/AppShell";
 
 const queryClient = new QueryClient({
@@ -129,7 +133,12 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route path="dashboard" element={<AdminDashboard />} />
                                 <Route path="users" element={<AdminUsers />} />
                                 <Route path="doctors" element={<AdminDoctors />} />
-                                <Route path="config" element={<AdminConfig />} />
+                                <Route path="config" element={<Navigate to="/admin/master-data/specializations" replace />} />
+                                <Route path="master-data/specializations" element={<AdminSpecializations />} />
+                                <Route path="master-data/diagnostic-types" element={<AdminDiagnosticTypes />} />
+                                <Route path="master-data/diagnostic-tests" element={<AdminDiagnosticTests />} />
+                                <Route path="master-data/medication-types" element={<AdminMedicationTypes />} />
+                                <Route path="master-data/medicines" element={<AdminMedicines />} />
                                 <Route path="reports" element={<AdminReports />} />
                                 <Route path="audit-logs" element={<AdminAuditLogs />} />
                                 <Route path="profile" element={<PatientProfile />} />

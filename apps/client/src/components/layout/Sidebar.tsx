@@ -33,39 +33,132 @@ interface NavItem {
     icon: React.ElementType;
 }
 
-const navigationByRole: Record<string, NavItem[]> = {
+interface NavGroup {
+    label: string;
+    icon?: React.ElementType;
+    children: NavItem[];
+}
+
+type NavEntry = NavItem | NavGroup;
+
+const navigationByRole: Record<string, NavEntry[]> = {
     patient: [
-        { label: "Dashboard", href: "/patient/dashboard", icon: LayoutDashboard },
-        { label: "Find Doctors", href: "/patient/doctors", icon: Stethoscope },
-        { label: "Appointments", href: "/patient/appointments", icon: Calendar },
-        { label: "Medical Records", href: "/patient/records", icon: FileText },
-        { label: "Notifications", href: "/patient/notifications", icon: Bell },
-        { label: "Profile", href: "/patient/profile", icon: User }
+        {
+            label: "Overview",
+            icon: LayoutDashboard,
+            children: [{ label: "Dashboard", href: "/patient/dashboard", icon: LayoutDashboard }]
+        },
+        {
+            label: "Care",
+            icon: Stethoscope,
+            children: [
+                { label: "Find Doctors", href: "/patient/doctors", icon: Stethoscope },
+                { label: "Appointments", href: "/patient/appointments", icon: Calendar },
+                { label: "Medical Records", href: "/patient/records", icon: FileText }
+            ]
+        },
+        {
+            label: "Account",
+            icon: User,
+            children: [
+                { label: "Notifications", href: "/patient/notifications", icon: Bell },
+                { label: "Profile", href: "/patient/profile", icon: User }
+            ]
+        }
     ],
     doctor: [
-        { label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard },
-        { label: "Appointments", href: "/doctor/appointments", icon: Calendar },
-        { label: "Patients", href: "/doctor/patients", icon: Users },
-        { label: "Schedule", href: "/doctor/schedule", icon: Clock },
-        { label: "Profile", href: "/doctor/profile", icon: User }
+        {
+            label: "Overview",
+            icon: LayoutDashboard,
+            children: [{ label: "Dashboard", href: "/doctor/dashboard", icon: LayoutDashboard }]
+        },
+        {
+            label: "Practice",
+            icon: Stethoscope,
+            children: [
+                { label: "Appointments", href: "/doctor/appointments", icon: Calendar },
+                { label: "Patients", href: "/doctor/patients", icon: Users },
+                { label: "Schedule", href: "/doctor/schedule", icon: Clock }
+            ]
+        },
+        {
+            label: "Account",
+            icon: User,
+            children: [{ label: "Profile", href: "/doctor/profile", icon: User }]
+        }
     ],
     lab: [
-        { label: "Dashboard", href: "/lab/dashboard", icon: LayoutDashboard },
-        { label: "Lab Requests", href: "/lab/requests", icon: FlaskConical },
-        { label: "Profile", href: "/lab/profile", icon: User }
+        {
+            label: "Overview",
+            icon: LayoutDashboard,
+            children: [{ label: "Dashboard", href: "/lab/dashboard", icon: LayoutDashboard }]
+        },
+        {
+            label: "Operations",
+            icon: FlaskConical,
+            children: [{ label: "Lab Requests", href: "/lab/requests", icon: FlaskConical }]
+        },
+        {
+            label: "Account",
+            icon: User,
+            children: [{ label: "Profile", href: "/lab/profile", icon: User }]
+        }
     ],
     pharmacist: [
-        { label: "Dashboard", href: "/pharmacist/dashboard", icon: LayoutDashboard },
-        { label: "Prescriptions", href: "/pharmacist/prescriptions", icon: Pill },
-        { label: "Profile", href: "/pharmacist/profile", icon: User }
+        {
+            label: "Overview",
+            icon: LayoutDashboard,
+            children: [{ label: "Dashboard", href: "/pharmacist/dashboard", icon: LayoutDashboard }]
+        },
+        {
+            label: "Operations",
+            icon: Pill,
+            children: [{ label: "Prescriptions", href: "/pharmacist/prescriptions", icon: Pill }]
+        },
+        {
+            label: "Account",
+            icon: User,
+            children: [{ label: "Profile", href: "/pharmacist/profile", icon: User }]
+        }
     ],
     admin: [
-        { label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard },
-        { label: "Users", href: "/admin/users", icon: UserCog },
-        { label: "Doctors", href: "/admin/doctors", icon: Stethoscope },
-        { label: "Configuration", href: "/admin/config", icon: Settings },
-        { label: "Reports", href: "/admin/reports", icon: BarChart3 },
-        { label: "Login Logs", href: "/admin/audit-logs", icon: History }
+        {
+            label: "Overview",
+            icon: LayoutDashboard,
+            children: [{ label: "Dashboard", href: "/admin/dashboard", icon: LayoutDashboard }]
+        },
+        {
+            label: "Management",
+            icon: UserCog,
+            children: [
+                { label: "Users", href: "/admin/users", icon: UserCog },
+                { label: "Doctors", href: "/admin/doctors", icon: Stethoscope }
+            ]
+        },
+        {
+            label: "Master Data",
+            icon: Settings,
+            children: [
+                { label: "Specializations", href: "/admin/master-data/specializations", icon: Stethoscope },
+                { label: "Diagnostic Types", href: "/admin/master-data/diagnostic-types", icon: FlaskConical },
+                { label: "Diagnostic Tests", href: "/admin/master-data/diagnostic-tests", icon: FileText },
+                { label: "Medication Types", href: "/admin/master-data/medication-types", icon: Pill },
+                { label: "Medicines", href: "/admin/master-data/medicines", icon: Pill }
+            ]
+        },
+        {
+            label: "Analytics",
+            icon: BarChart3,
+            children: [
+                { label: "Reports", href: "/admin/reports", icon: BarChart3 },
+                { label: "Login Logs", href: "/admin/audit-logs", icon: History }
+            ]
+        },
+        {
+            label: "Account",
+            icon: User,
+            children: [{ label: "Profile", href: "/admin/profile", icon: User }]
+        }
     ]
 };
 
@@ -75,6 +168,26 @@ export function Sidebar({ open, onClose }: SidebarProps) {
     if (!user) return null;
 
     const navItems = navigationByRole[user.role] || [];
+
+    const renderNavItem = (item: NavItem, isChild = false) => (
+        <NavLink
+            key={item.href}
+            to={item.href}
+            onClick={onClose}
+            className={({ isActive }) =>
+                cn(
+                    "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
+                    isChild && "pl-3 text-[13px]",
+                    isActive
+                        ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                        : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
+                )
+            }
+        >
+            <item.icon className="h-4 w-4 flex-shrink-0" />
+            {item.label}
+        </NavLink>
+    );
 
     return (
         <>
@@ -105,24 +218,19 @@ export function Sidebar({ open, onClose }: SidebarProps) {
 
                 <ScrollArea className="h-[calc(100%-4rem)] lg:h-full py-4">
                     <nav className="px-3 space-y-1">
-                        {navItems.map((item) => (
-                            <NavLink
-                                key={item.href}
-                                to={item.href}
-                                onClick={onClose}
-                                className={({ isActive }) =>
-                                    cn(
-                                        "flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors",
-                                        isActive
-                                            ? "bg-sidebar-accent text-sidebar-accent-foreground"
-                                            : "text-sidebar-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-accent-foreground"
-                                    )
-                                }
-                            >
-                                <item.icon className="h-5 w-5 flex-shrink-0" />
-                                {item.label}
-                            </NavLink>
-                        ))}
+                        {navItems.map((entry) => {
+                            if ("children" in entry) {
+                                return (
+                                    <div key={entry.label} className="space-y-1">
+                                        <div className="px-3 pt-2 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                                            {entry.label}
+                                        </div>
+                                        {entry.children.map((child) => renderNavItem(child, true))}
+                                    </div>
+                                );
+                            }
+                            return renderNavItem(entry);
+                        })}
                     </nav>
                 </ScrollArea>
             </aside>
