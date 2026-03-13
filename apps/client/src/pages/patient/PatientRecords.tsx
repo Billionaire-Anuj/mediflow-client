@@ -7,7 +7,6 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
-import { Badge } from "@/components/ui/badge";
 import { FileText, Pill, FlaskConical, User, Calendar, Clock } from "lucide-react";
 import { format } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
@@ -141,14 +140,6 @@ export default function PatientRecords() {
                     {records.map((record, index) => {
                         const start = combineDateAndTime(record.timeslot?.date, record.timeslot?.startTime);
                         const end = combineDateAndTime(record.timeslot?.date, record.timeslot?.endTime);
-                        const medicationCount = record.medications?.reduce(
-                            (total, med) => total + (med.drugs?.length || 0),
-                            0
-                        );
-                        const diagnosticCount = record.diagnostics?.reduce(
-                            (total, diag) => total + (diag.diagnosticTests?.length || 0),
-                            0
-                        );
 
                         return (
                             <AccordionItem

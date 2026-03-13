@@ -494,7 +494,7 @@ export default function DoctorPatients() {
                                     <Label>Date *</Label>
                                     <DatePicker
                                         value={appointmentDate}
-                                        onChange={(date) => setAppointmentDate(date)}
+                                        onChange={(date) => setAppointmentDate(date as Date)}
                                         placeholder="Select appointment date"
                                     />
                                 </div>

@@ -103,11 +103,7 @@ export default function DoctorEncounter() {
         : appointment?.isPaidViaOfflineMedium
           ? "Paid Offline"
           : "Unpaid";
-    const isEncounterLocked =
-        consultMutation.isSuccess ||
-        appointment?.status === AppointmentStatus.COMPLETED ||
-        appointment?.status === AppointmentStatus.CANCELED ||
-        !!appointment?.medicalRecords;
+
 
     const {
         register,
@@ -163,6 +159,12 @@ export default function DoctorEncounter() {
         },
         onError: (error) => toast.error(getErrorMessage(error))
     });
+
+    const isEncounterLocked =
+        consultMutation.isSuccess ||
+        appointment?.status === AppointmentStatus.COMPLETED ||
+        appointment?.status === AppointmentStatus.CANCELED ||
+        !!appointment?.medicalRecords;
 
     const addMedicine = () => {
         if (newMedicine.medicineId && newMedicine.dose) {
