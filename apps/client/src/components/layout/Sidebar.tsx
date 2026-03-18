@@ -18,7 +18,8 @@ import {
     User,
     X,
     HeartPulse,
-    Tablets
+    Tablets,
+    Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -54,6 +55,7 @@ const navigationByRole: Record<string, NavEntry[]> = {
             icon: Stethoscope,
             children: [
                 { label: "Find Doctors", href: "/patient/doctors", icon: Stethoscope },
+                { label: "Symptom Discovery", href: "/patient/symptom-discovery", icon: Sparkles },
                 { label: "Appointments", href: "/patient/appointments", icon: Calendar },
                 { label: "Medical Records", href: "/patient/records", icon: FileText }
             ]

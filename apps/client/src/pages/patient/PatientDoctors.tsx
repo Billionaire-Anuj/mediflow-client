@@ -1,34 +1,25 @@
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import {
-    DoctorRecommendationService,
-    DoctorService,
-    SpecializationService,
-    type DoctorProfileDto
-} from "@mediflow/mediflow-api";
+import { DoctorService, SpecializationService, type DoctorProfileDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RatingStars } from "@/components/ui/rating";
-import { Search, Sparkles, ArrowRight } from "lucide-react";
-import { toast } from "sonner";
+import { ArrowRight, Search, Sparkles } from "lucide-react";
 import { getAvatarUrl } from "@/lib/auth";
 
 export default function PatientDoctors() {
+    const [searchParams] = useSearchParams();
     const [searchQuery, setSearchQuery] = useState("");
     const [selectedSpecialization, setSelectedSpecialization] = useState<string>("all");
     const [minRating, setMinRating] = useState<string>("all");
-    const [recommendationQuery, setRecommendationQuery] = useState("");
-    const [recommendationCity, setRecommendationCity] = useState("");
-    const [recommendationInput, setRecommendationInput] = useState("");
-    const [recommendationCityInput, setRecommendationCityInput] = useState("");
 
     const { data: doctorsData, isLoading: doctorsLoading } = useQuery({
         queryKey: ["doctors"],
@@ -40,37 +31,33 @@ export default function PatientDoctors() {
         queryFn: async () => SpecializationService.getAllSpecializationsList({})
     });
 
-    const { data: recommendationData, isFetching: recommendationLoading } = useQuery({
-        queryKey: ["doctor-recommendations", recommendationQuery, recommendationCity],
-        enabled: recommendationQuery.trim().length > 0,
-        queryFn: async () =>
-            DoctorRecommendationService.getDoctorRecommendations({
-                query: recommendationQuery,
-                city: recommendationCity || undefined,
-                limit: 6
-            })
-    });
-
     const doctors = doctorsData?.result ?? [];
     const specializationOptions = specializationsData?.result ?? [];
-    const recommendedDoctors = recommendationData?.result?.doctors ?? [];
-    const recommendedFallback = recommendationData?.result?.datasetFallback ?? [];
+    const recommendedSpecialization = searchParams.get("specialization");
+    const fromDiscovery = searchParams.get("source") === "discovery";
+
+    useEffect(() => {
+        if (recommendedSpecialization?.trim()) {
+            setSelectedSpecialization(recommendedSpecialization.trim());
+        }
+    }, [recommendedSpecialization]);
 
     const filteredDoctors = useMemo(() => {
         const query = searchQuery.toLowerCase();
         const ratingThreshold = minRating === "all" ? null : Number(minRating);
-        return doctors.filter((doc) => {
-            const name = doc.name?.toLowerCase() || "";
-            const specTitles = (doc.specializations || []).map((s) => s.title?.toLowerCase() || "");
-            const matchesSearch = name.includes(query) || specTitles.some((s) => s.includes(query));
-            const matchesSpec =
+
+        return doctors.filter((doctor) => {
+            const name = doctor.name?.toLowerCase() || "";
+            const specTitles = (doctor.specializations || []).map((spec) => spec.title?.toLowerCase() || "");
+            const matchesSearch = name.includes(query) || specTitles.some((specialization) => specialization.includes(query));
+            const matchesSpecialization =
                 selectedSpecialization === "all" ||
-                (doc.specializations || []).some((s) => s.title === selectedSpecialization);
-            const matchesRating =
-                ratingThreshold === null || (doc.averageRating ?? 0) >= ratingThreshold;
-            return matchesSearch && matchesSpec && matchesRating;
+                (doctor.specializations || []).some((spec) => spec.title === selectedSpecialization);
+            const matchesRating = ratingThreshold === null || (doctor.averageRating ?? 0) >= ratingThreshold;
+
+            return matchesSearch && matchesSpecialization && matchesRating;
         });
-    }, [doctors, searchQuery, selectedSpecialization, minRating]);
+    }, [doctors, minRating, searchQuery, selectedSpecialization]);
 
     const renderDoctorCard = (doctor: DoctorProfileDto) => {
         const specializationLabel =
@@ -80,7 +67,7 @@ export default function PatientDoctors() {
                 .join(", ") || "General Practitioner";
         const initials = (doctor.name || "D")
             .split(" ")
-            .map((n) => n[0])
+            .map((name) => name[0])
             .join("")
             .slice(0, 2)
             .toUpperCase();
@@ -102,12 +89,12 @@ export default function PatientDoctors() {
                         </Avatar>
                         <div className="flex-1 space-y-1">
                             <div className="flex items-center justify-between gap-2">
-                                <h3 className="font-semibold text-foreground truncate">{doctor.name}</h3>
+                                <h3 className="truncate font-semibold text-foreground">{doctor.name}</h3>
                                 <Badge variant={doctor.isActive ? "secondary" : "destructive"}>
                                     {doctor.isActive ? "Available" : "Inactive"}
                                 </Badge>
                             </div>
-                            <p className="text-sm text-muted-foreground line-clamp-2">{specializationLabel}</p>
+                            <p className="line-clamp-2 text-sm text-muted-foreground">{specializationLabel}</p>
                             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
                                 <RatingStars rating={doctor.averageRating ?? 0} />
                                 <span>
@@ -151,7 +138,7 @@ export default function PatientDoctors() {
             <PageHeader title="Find Doctors" description="Search, compare, and book your appointment" />
 
             <Card className="border-none bg-gradient-to-br from-primary/10 via-accent/30 to-background shadow-sm">
-                <CardContent className="p-6 space-y-4">
+                <CardContent className="space-y-4 p-6">
                     <div className="flex flex-col gap-2">
                         <Badge className="w-fit" variant="secondary">
                             Healthcare Services
@@ -161,13 +148,26 @@ export default function PatientDoctors() {
                             Discover the right doctor for your needs and schedule a visit in minutes.
                         </p>
                     </div>
+                    {fromDiscovery && recommendedSpecialization && (
+                        <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
+                            <div>
+                                <p className="text-sm font-medium text-slate-900">Specialty filter applied from Symptom Discovery</p>
+                                <p className="text-sm text-slate-600">
+                                    We filtered this page to <span className="font-semibold">{recommendedSpecialization}</span>.
+                                </p>
+                            </div>
+                            <Button variant="outline" asChild>
+                                <Link to="/patient/symptom-discovery">Open Discovery</Link>
+                            </Button>
+                        </div>
+                    )}
                     <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap">
                         <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                             <Input
                                 placeholder="Search by doctor name or specialization"
                                 value={searchQuery}
-                                onChange={(e) => setSearchQuery(e.target.value)}
+                                onChange={(event) => setSearchQuery(event.target.value)}
                                 className="pl-10"
                             />
                         </div>
@@ -200,82 +200,23 @@ export default function PatientDoctors() {
                 </CardContent>
             </Card>
 
-            <Card className="border-border/70">
-                <CardHeader className="space-y-1">
-                    <CardTitle className="flex items-center gap-2 text-base">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        Doctor Recommendations
-                    </CardTitle>
-                    <CardDescription>Describe your symptoms or specialization to get tailored suggestions.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                    <div className="grid gap-4 md:grid-cols-[1fr_1fr_auto]">
-                        <Input
-                            placeholder="e.g., chest pain, cardiology"
-                            value={recommendationInput}
-                            onChange={(e) => setRecommendationInput(e.target.value)}
-                        />
-                        <Input
-                            placeholder="City (optional)"
-                            value={recommendationCityInput}
-                            onChange={(e) => setRecommendationCityInput(e.target.value)}
-                        />
-                        <Button
-                            onClick={() => {
-                                if (!recommendationInput.trim()) {
-                                    toast.error("Please enter symptoms or a specialization");
-                                    return;
-                                }
-                                setRecommendationQuery(recommendationInput.trim());
-                                setRecommendationCity(recommendationCityInput.trim());
-                            }}
-                            disabled={recommendationLoading}
-                        >
-                            {recommendationLoading ? "Loading..." : "Recommend"}
-                            <ArrowRight className="ml-2 h-4 w-4" />
-                        </Button>
-                    </div>
-
-                    {recommendationQuery && (
-                        <div className="space-y-3">
-                            {recommendationData?.result?.recommendedSpecialization && (
-                                <p className="text-sm text-muted-foreground">
-                                    Recommended specialization:{" "}
-                                    <span className="font-medium text-foreground">
-                                        {recommendationData.result.recommendedSpecialization}
-                                    </span>
-                                </p>
-                            )}
-
-                            {recommendedDoctors.length > 0 ? (
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {recommendedDoctors.map((doctor) => renderDoctorCard(doctor))}
-                                </div>
-                            ) : recommendedFallback.length > 0 ? (
-                                <div className="grid gap-3 md:grid-cols-2">
-                                    {recommendedFallback.map((doc, idx) => (
-                                        <Card key={`${doc.name}-${idx}`} className="border-dashed">
-                                            <CardContent className="p-4">
-                                                <p className="font-medium">{doc.name}</p>
-                                                <p className="text-xs text-muted-foreground">{doc.category}</p>
-                                                <p className="text-xs text-muted-foreground">
-                                                    {doc.city} {doc.address ? `• ${doc.address}` : ""}
-                                                </p>
-                                                {doc.rating !== undefined && (
-                                                    <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
-                                                        <RatingStars rating={doc.rating} />
-                                                        <span>{doc.rating.toFixed(1)} rating</span>
-                                                    </div>
-                                                )}
-                                            </CardContent>
-                                        </Card>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p className="text-sm text-muted-foreground">No recommendations yet.</p>
-                            )}
+            <Card className="border-dashed border-primary/30 bg-primary/5 shadow-none">
+                <CardContent className="flex flex-col gap-4 p-6 md:flex-row md:items-center md:justify-between">
+                    <div className="space-y-1">
+                        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            Need help choosing a specialty?
                         </div>
-                    )}
+                        <p className="text-sm text-muted-foreground">
+                            Use Symptom Discovery to enter vitals and symptom checklists, then come back here with the specialty filter applied.
+                        </p>
+                    </div>
+                    <Button asChild>
+                        <Link to="/patient/symptom-discovery">
+                            Open Symptom Discovery
+                            <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                    </Button>
                 </CardContent>
             </Card>
 
@@ -283,11 +224,23 @@ export default function PatientDoctors() {
                 <EmptyState
                     icon={Search}
                     title="No doctors found"
-                    description="Try adjusting your search or filter criteria"
+                    description="Try adjusting your specialty, rating, or search filters."
                 />
             ) : (
-                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    {filteredDoctors.map((doctor) => renderDoctorCard(doctor))}
+                <div className="space-y-3">
+                    <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                            <h3 className="text-lg font-semibold text-foreground">Available Doctors</h3>
+                            <p className="text-sm text-muted-foreground">
+                                {selectedSpecialization === "all"
+                                    ? `Showing ${filteredDoctors.length} doctors across all specialties`
+                                    : `Showing ${filteredDoctors.length} doctors in ${selectedSpecialization}`}
+                            </p>
+                        </div>
+                    </div>
+                    <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                        {filteredDoctors.map((doctor) => renderDoctorCard(doctor))}
+                    </div>
                 </div>
             )}
         </div>

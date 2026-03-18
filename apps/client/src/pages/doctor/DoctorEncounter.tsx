@@ -104,7 +104,6 @@ export default function DoctorEncounter() {
           ? "Paid Offline"
           : "Unpaid";
 
-
     const {
         register,
         handleSubmit,

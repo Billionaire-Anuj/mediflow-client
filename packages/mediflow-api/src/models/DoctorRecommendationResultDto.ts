@@ -6,6 +6,8 @@ import type { DoctorDirectoryDto } from "./DoctorDirectoryDto";
 import type { DoctorProfileDto } from "./DoctorProfileDto";
 export type DoctorRecommendationResultDto = {
     query?: string | null;
+    assessmentSummary?: string | null;
+    matchedSignals?: Array<string> | null;
     recommendedSpecialization?: string | null;
     doctors?: Array<DoctorProfileDto> | null;
     datasetFallback?: Array<DoctorDirectoryDto> | null;

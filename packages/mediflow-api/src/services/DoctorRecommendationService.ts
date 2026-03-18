@@ -2,6 +2,7 @@
 /* istanbul ignore file */
 /* tslint:disable */
 /* eslint-disable */
+import type { DoctorRecommendationAssessmentDto } from "../models/DoctorRecommendationAssessmentDto";
 import type { DoctorRecommendationResultDtoResponseDto } from "../models/DoctorRecommendationResultDtoResponseDto";
 import type { CancelablePromise } from "../core/CancelablePromise";
 import { OpenAPI } from "../core/OpenAPI";
@@ -30,6 +31,25 @@ export class DoctorRecommendationService {
                 city: city,
                 limit: limit
             }
+        });
+    }
+
+    /**
+     * GetDoctorRecommendationsFromAssessment
+     * Recommend doctors based on clinical assessment inputs.
+     * @returns DoctorRecommendationResultDtoResponseDto OK
+     * @throws ApiError
+     */
+    public static getDoctorRecommendationsFromAssessment({
+        requestBody
+    }: {
+        requestBody?: DoctorRecommendationAssessmentDto;
+    }): CancelablePromise<DoctorRecommendationResultDtoResponseDto> {
+        return __request(OpenAPI, {
+            method: "POST",
+            url: "/api/v1/doctor/recommendation/assessment",
+            body: requestBody,
+            mediaType: "application/json"
         });
     }
 }

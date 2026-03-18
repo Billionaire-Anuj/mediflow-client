@@ -63,6 +63,7 @@ export type { DoctorProfileDto } from "./models/DoctorProfileDto";
 export type { DoctorProfileDtoCollectionDto } from "./models/DoctorProfileDtoCollectionDto";
 export type { DoctorProfileDtoListResponseDto } from "./models/DoctorProfileDtoListResponseDto";
 export type { DoctorProfileDtoResponseDto } from "./models/DoctorProfileDtoResponseDto";
+export type { DoctorRecommendationAssessmentDto } from "./models/DoctorRecommendationAssessmentDto";
 export type { DoctorRecommendationResultDto } from "./models/DoctorRecommendationResultDto";
 export type { DoctorRecommendationResultDtoResponseDto } from "./models/DoctorRecommendationResultDtoResponseDto";
 export type { DoctorReviewDto } from "./models/DoctorReviewDto";
