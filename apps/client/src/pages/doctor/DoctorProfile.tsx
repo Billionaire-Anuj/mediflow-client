@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
+import { TwoFactorSettingsCard } from "@/components/profile/TwoFactorSettingsCard";
 import { toast } from "sonner";
 import { Loader2 } from "lucide-react";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
@@ -276,6 +277,8 @@ export default function DoctorProfile() {
                     </CardContent>
                 </Card>
             </div>
+
+            <TwoFactorSettingsCard />
 
             <Card>
                 <CardHeader>

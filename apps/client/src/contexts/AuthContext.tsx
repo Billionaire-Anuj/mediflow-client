@@ -6,7 +6,15 @@ import { getErrorMessage } from "@/lib/api";
 interface AuthContextType {
     user: AuthUser | null;
     isAuthenticated: boolean;
-    login: (email: string, password: string) => Promise<{ user: AuthUser | null; message: string | null }>;
+    login: (
+        email: string,
+        password: string
+    ) => Promise<{ user: AuthUser | null; message: string | null; requiresTwoFactor: boolean }>;
+    loginWithTwoFactor: (
+        email: string,
+        password: string,
+        authenticationCode: string
+    ) => Promise<{ user: AuthUser | null; message: string | null }>;
     logout: () => void;
     isLoading: boolean;
     isInitializing: boolean;
@@ -39,7 +47,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, [loadProfile]);
 
     const login = useCallback(
-        async (email: string, _password: string): Promise<{ user: AuthUser | null; message: string | null }> => {
+        async (
+            email: string,
+            _password: string
+        ): Promise<{ user: AuthUser | null; message: string | null; requiresTwoFactor: boolean }> => {
             setIsLoading(true);
             try {
                 const response = await AuthenticationService.loginViaSpa({
@@ -48,14 +59,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const message = response.message || null;
                 if (response.result?.isTwoFactorRequired) {
                     setIsLoading(false);
-                    return { user: null, message };
+                    return { user: null, message, requiresTwoFactor: true };
                 }
                 const profileUser = mapProfileToUser(response.result?.profile);
                 if (profileUser) {
                     setUser(profileUser);
                     setIsLoading(false);
+                    return { user: profileUser, message, requiresTwoFactor: false };
+                }
+                const loadedUser = await loadProfile();
+                setIsLoading(false);
+                return { user: loadedUser, message, requiresTwoFactor: false };
+            } catch (error) {
+                setIsLoading(false);
+                return { user: null, message: getErrorMessage(error), requiresTwoFactor: false };
+            }
+        },
+        [loadProfile]
+    );
+
+    const loginWithTwoFactor = useCallback(
+        async (
+            email: string,
+            password: string,
+            authenticationCode: string
+        ): Promise<{ user: AuthUser | null; message: string | null }> => {
+            setIsLoading(true);
+            try {
+                const response = await AuthenticationService.login2FactorAuthenticationViaSpa({
+                    requestBody: {
+                        emailAddressOrUsername: email,
+                        password,
+                        authenticationCode
+                    }
+                });
+
+                const message = response.message || null;
+                const profileUser = mapProfileToUser(response.result?.profile);
+
+                if (profileUser) {
+                    setUser(profileUser);
+                    setIsLoading(false);
                     return { user: profileUser, message };
                 }
+
                 const loadedUser = await loadProfile();
                 setIsLoading(false);
                 return { user: loadedUser, message };
@@ -83,6 +130,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 user,
                 isAuthenticated: !!user,
                 login,
+                loginWithTwoFactor,
                 logout,
                 isLoading,
                 isInitializing,

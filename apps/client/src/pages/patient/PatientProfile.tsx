@@ -16,6 +16,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { TwoFactorSettingsCard } from "@/components/profile/TwoFactorSettingsCard";
 import { toast } from "sonner";
 import { Loader2, Camera } from "lucide-react";
 import { API_BASE_URL, getErrorMessage, getResponseMessage } from "@/lib/api";
@@ -486,6 +487,8 @@ export default function PatientProfile() {
                 </TabsContent>
 
                 <TabsContent value="security" className="space-y-6">
+                    <TwoFactorSettingsCard />
+
                     <Card>
                         <CardHeader>
                             <CardTitle>Change Password</CardTitle>
