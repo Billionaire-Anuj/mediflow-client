@@ -1,11 +1,12 @@
 /* eslint-disable react-refresh/only-export-components */
-import { createContext, useContext, useEffect, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { createContext, useContext } from "react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { NotificationService, type NotificationDto } from "@mediflow/mediflow-api";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchNotificationsForUser, type AppNotification } from "@/lib/notifications";
+import { toAppNotification, type AppNotification } from "@/lib/notifications";
 
 interface NotificationContextValue {
-    notifications: Array<AppNotification & { read: boolean }>;
+    notifications: AppNotification[];
     unreadCount: number;
     isLoading: boolean;
     markAsRead: (notificationId: string) => void;
@@ -15,50 +16,65 @@ interface NotificationContextValue {
 
 const NotificationContext = createContext<NotificationContextValue | undefined>(undefined);
 
-const getStorageKey = (userId?: string, role?: string) =>
-    `mediflow.notifications.read.${role || "guest"}.${userId || "anon"}`;
-
 export function NotificationProvider({ children }: { children: React.ReactNode }) {
     const { user } = useAuth();
-    const [readIds, setReadIds] = useState<string[]>([]);
-
-    useEffect(() => {
-        if (!user) {
-            setReadIds([]);
-            return;
-        }
-
-        const saved = window.localStorage.getItem(getStorageKey(user.id, user.role));
-        setReadIds(saved ? JSON.parse(saved) : []);
-    }, [user]);
-
-    useEffect(() => {
-        if (!user) return;
-        window.localStorage.setItem(getStorageKey(user.id, user.role), JSON.stringify(readIds));
-    }, [readIds, user]);
+    const queryClient = useQueryClient();
+    const queryKey = ["notifications", user?.id, user?.role];
 
     const query = useQuery({
-        queryKey: ["notifications", user?.id, user?.role],
+        queryKey,
         enabled: !!user,
-        staleTime: 60_000,
+        staleTime: 30_000,
         refetchInterval: 60_000,
-        queryFn: async () => fetchNotificationsForUser(user!)
+        queryFn: async () => {
+            const response = await NotificationService.getMyNotificationsList({
+                orderBys: ["CreatedAt desc"]
+            });
+
+            return response.result || [];
+        }
     });
 
-    const notifications = (query.data || []).map((notification) => ({
-        ...notification,
-        read: readIds.includes(notification.id)
-    }));
+    const rawNotifications = (query.data || []) as NotificationDto[];
+    const notifications = rawNotifications.map((notification) => toAppNotification(notification));
+
+    const updateCachedNotifications = (updater: (current: NotificationDto[]) => NotificationDto[]) => {
+        queryClient.setQueryData(queryKey, (current?: NotificationDto[]) => updater(current || []));
+    };
 
     const value: NotificationContextValue = {
         notifications,
         unreadCount: notifications.filter((notification) => !notification.read).length,
         isLoading: query.isLoading,
         markAsRead: (notificationId: string) => {
-            setReadIds((current) => (current.includes(notificationId) ? current : [...current, notificationId]));
+            updateCachedNotifications((current) =>
+                current.map((notification) =>
+                    notification.id === notificationId
+                        ? {
+                              ...notification,
+                              isRead: true,
+                              readAt: notification.readAt || new Date().toISOString()
+                          }
+                        : notification
+                )
+            );
+
+            void NotificationService.markNotificationAsRead({ notificationId }).catch(() => {
+                void query.refetch();
+            });
         },
         markAllAsRead: () => {
-            setReadIds(notifications.map((notification) => notification.id));
+            updateCachedNotifications((current) =>
+                current.map((notification) => ({
+                    ...notification,
+                    isRead: true,
+                    readAt: notification.readAt || new Date().toISOString()
+                }))
+            );
+
+            void NotificationService.markAllNotificationsAsRead().catch(() => {
+                void query.refetch();
+            });
         },
         refresh: async () => query.refetch()
     };

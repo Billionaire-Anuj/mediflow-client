@@ -19,21 +19,11 @@ import { CardSkeleton } from "@/components/ui/loading-skeleton";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
-import {
-    ArrowLeft,
-    Pill,
-    FlaskConical,
-    Save,
-    Plus,
-    X,
-    Loader2,
-    Calendar,
-    Clock,
-    Stethoscope
-} from "lucide-react";
+import { ArrowLeft, Pill, FlaskConical, Save, Plus, X, Loader2, Calendar, Clock, Stethoscope } from "lucide-react";
 import { format } from "date-fns";
 import { toast } from "sonner";
 import { combineDateAndTime } from "@/lib/datetime";
+import { getEncounterWindowState } from "@/lib/encounter-window";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
 import { getAvatarUrl } from "@/lib/auth";
 
@@ -90,6 +80,7 @@ export default function DoctorEncounter() {
     const appointment = appointmentData?.result || null;
     const appointmentDate = combineDateAndTime(appointment?.timeslot?.date, appointment?.timeslot?.startTime);
     const appointmentEnd = combineDateAndTime(appointment?.timeslot?.date, appointment?.timeslot?.endTime);
+    const encounterWindow = getEncounterWindowState(appointmentDate);
     const patientInitials =
         appointment?.patient?.name
             ?.split(" ")
@@ -115,6 +106,11 @@ export default function DoctorEncounter() {
     const consultMutation = useMutation({
         mutationFn: async (data: EncounterForm) => {
             if (!appointmentId) throw new Error("Missing appointment");
+            if (!encounterWindow?.isWithinWindow) {
+                throw new Error(
+                    encounterWindow?.helperText || "Encounter can only be completed within the allowed time window."
+                );
+            }
             return AppointmentService.consultAppointment({
                 appointmentId,
                 requestBody: {
@@ -164,6 +160,8 @@ export default function DoctorEncounter() {
         appointment?.status === AppointmentStatus.COMPLETED ||
         appointment?.status === AppointmentStatus.CANCELED ||
         !!appointment?.medicalRecords;
+    const isEncounterTimeLocked = !encounterWindow?.isWithinWindow;
+    const isEncounterEditingDisabled = isEncounterLocked || isEncounterTimeLocked;
 
     const addMedicine = () => {
         if (newMedicine.medicineId && newMedicine.dose) {
@@ -229,9 +227,7 @@ export default function DoctorEncounter() {
                     <Badge
                         variant={isPaid ? "secondary" : "outline"}
                         className={
-                            isPaid
-                                ? "bg-emerald-600 text-white hover:bg-emerald-600"
-                                : "border-rose-200 text-rose-600"
+                            isPaid ? "bg-emerald-600 text-white hover:bg-emerald-600" : "border-rose-200 text-rose-600"
                         }
                     >
                         {paymentLabel}
@@ -245,6 +241,14 @@ export default function DoctorEncounter() {
                         <Card className="border-amber-200 bg-amber-50/70">
                             <CardContent className="p-4 text-sm text-amber-900">
                                 This encounter has been completed. Editing is now locked.
+                            </CardContent>
+                        </Card>
+                    )}
+                    {isEncounterTimeLocked && (
+                        <Card className="border-rose-200 bg-rose-50/70">
+                            <CardContent className="p-4 text-sm text-rose-900">
+                                Doctors can complete the encounter only from 30 minutes before the appointment until 30
+                                minutes after it starts. {encounterWindow?.helperText}
                             </CardContent>
                         </Card>
                     )}
@@ -264,7 +268,7 @@ export default function DoctorEncounter() {
                                             id="diagnosis"
                                             {...register("diagnosis")}
                                             placeholder="Enter diagnosis with ICD code if applicable"
-                                            disabled={isEncounterLocked || consultMutation.isPending}
+                                            disabled={isEncounterEditingDisabled || consultMutation.isPending}
                                             className={errors.diagnosis ? "border-destructive" : ""}
                                         />
                                         {errors.diagnosis && (
@@ -277,7 +281,7 @@ export default function DoctorEncounter() {
                                             id="treatmentPlan"
                                             {...register("treatmentPlan")}
                                             placeholder="Outline the treatment approach"
-                                            disabled={isEncounterLocked || consultMutation.isPending}
+                                            disabled={isEncounterEditingDisabled || consultMutation.isPending}
                                             className={errors.treatmentPlan ? "border-destructive" : ""}
                                         />
                                         {errors.treatmentPlan && (
@@ -293,7 +297,7 @@ export default function DoctorEncounter() {
                                         {...register("notes")}
                                         placeholder="Document patient symptoms, examination findings..."
                                         rows={4}
-                                        disabled={isEncounterLocked || consultMutation.isPending}
+                                        disabled={isEncounterEditingDisabled || consultMutation.isPending}
                                         className={errors.notes ? "border-destructive" : ""}
                                     />
                                     {errors.notes && <p className="text-xs text-destructive">{errors.notes.message}</p>}
@@ -305,14 +309,14 @@ export default function DoctorEncounter() {
                                         id="prescriptions"
                                         {...register("prescriptions")}
                                         placeholder="e.g., Continue current medications"
-                                        disabled={isEncounterLocked || consultMutation.isPending}
+                                        disabled={isEncounterEditingDisabled || consultMutation.isPending}
                                     />
                                 </div>
 
                                 <Button
                                     type="submit"
                                     className="w-full"
-                                    disabled={consultMutation.isPending || isEncounterLocked}
+                                    disabled={consultMutation.isPending || isEncounterEditingDisabled}
                                 >
                                     {consultMutation.isPending && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                     <Save className="h-4 w-4 mr-2" />
@@ -349,7 +353,12 @@ export default function DoctorEncounter() {
                                                         {med.frequency} • {med.duration}
                                                     </p>
                                                 </div>
-                                                <Button variant="ghost" size="icon" onClick={() => removeMedicine(med.id)}>
+                                                <Button
+                                                    variant="ghost"
+                                                    size="icon"
+                                                    onClick={() => removeMedicine(med.id)}
+                                                    disabled={isEncounterEditingDisabled}
+                                                >
                                                     <X className="h-4 w-4" />
                                                 </Button>
                                             </div>
@@ -362,7 +371,7 @@ export default function DoctorEncounter() {
                                     variant="outline"
                                     className="w-full justify-start"
                                     onClick={() => setPrescriptionOpen(true)}
-                                    disabled={isEncounterLocked}
+                                    disabled={isEncounterEditingDisabled}
                                 >
                                     <Pill className="h-4 w-4 mr-2" />
                                     Add Medication
@@ -389,7 +398,7 @@ export default function DoctorEncounter() {
                                     variant="outline"
                                     className="w-full justify-start"
                                     onClick={() => setLabRequestOpen(true)}
-                                    disabled={isEncounterLocked}
+                                    disabled={isEncounterEditingDisabled}
                                 >
                                     <FlaskConical className="h-4 w-4 mr-2" />
                                     Order Lab Tests
@@ -421,7 +430,9 @@ export default function DoctorEncounter() {
                                         {appointment.patient?.emailAddress || "No email on file"}
                                     </p>
                                     {appointment.patient?.phoneNumber && (
-                                        <p className="text-sm text-muted-foreground">{appointment.patient.phoneNumber}</p>
+                                        <p className="text-sm text-muted-foreground">
+                                            {appointment.patient.phoneNumber}
+                                        </p>
                                     )}
                                 </div>
                             </div>
@@ -447,6 +458,15 @@ export default function DoctorEncounter() {
                                         : ""}
                                 </span>
                             </div>
+                            {encounterWindow && (
+                                <div className="flex items-center gap-2">
+                                    <Clock className="h-4 w-4" />
+                                    <span>
+                                        Encounter Window: {format(encounterWindow.windowStart, "h:mm a")} -{" "}
+                                        {format(encounterWindow.windowEnd, "h:mm a")}
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex items-center gap-2">
                                 <Stethoscope className="h-4 w-4" />
                                 <span>Fee: Rs. {appointment.fee ?? 0}</span>
@@ -484,6 +504,7 @@ export default function DoctorEncounter() {
                                     onValueChange={(value) =>
                                         setNewMedicine((prev) => ({ ...prev, medicineId: value }))
                                     }
+                                    disabled={isEncounterEditingDisabled}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select medicine" />
@@ -503,6 +524,7 @@ export default function DoctorEncounter() {
                                     value={newMedicine.dose || ""}
                                     onChange={(e) => setNewMedicine((prev) => ({ ...prev, dose: e.target.value }))}
                                     placeholder="e.g., 500mg"
+                                    disabled={isEncounterEditingDisabled}
                                 />
                             </div>
                             <div>
@@ -510,6 +532,7 @@ export default function DoctorEncounter() {
                                 <Select
                                     value={newMedicine.frequency || ""}
                                     onValueChange={(v) => setNewMedicine((prev) => ({ ...prev, frequency: v }))}
+                                    disabled={isEncounterEditingDisabled}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select" />
@@ -528,6 +551,7 @@ export default function DoctorEncounter() {
                                 <Select
                                     value={newMedicine.duration || ""}
                                     onValueChange={(v) => setNewMedicine((prev) => ({ ...prev, duration: v }))}
+                                    disabled={isEncounterEditingDisabled}
                                 >
                                     <SelectTrigger>
                                         <SelectValue placeholder="Select" />
@@ -549,10 +573,17 @@ export default function DoctorEncounter() {
                                         setNewMedicine((prev) => ({ ...prev, instructions: e.target.value }))
                                     }
                                     placeholder="e.g., Take with food"
+                                    disabled={isEncounterEditingDisabled}
                                 />
                             </div>
                             <div className="col-span-2">
-                                <Button type="button" variant="outline" onClick={addMedicine} className="w-full">
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={addMedicine}
+                                    className="w-full"
+                                    disabled={isEncounterEditingDisabled}
+                                >
                                     <Plus className="h-4 w-4 mr-1" />
                                     Add Medicine
                                 </Button>
@@ -584,6 +615,7 @@ export default function DoctorEncounter() {
                                             <Checkbox
                                                 id={test.id}
                                                 checked={selectedTests.includes(test.id || "")}
+                                                disabled={isEncounterEditingDisabled}
                                                 onCheckedChange={(checked) => {
                                                     if (checked) {
                                                         setSelectedTests((prev) => [...prev, test.id || ""]);
@@ -608,6 +640,7 @@ export default function DoctorEncounter() {
                                 onChange={(e) => setLabNotes(e.target.value)}
                                 placeholder="Reason for tests..."
                                 rows={2}
+                                disabled={isEncounterEditingDisabled}
                             />
                         </div>
 

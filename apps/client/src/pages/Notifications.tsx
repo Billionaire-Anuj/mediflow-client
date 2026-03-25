@@ -30,7 +30,7 @@ export default function NotificationsPage() {
         <div className="space-y-6 animate-fade-in">
             <PageHeader
                 title="Notifications"
-                description="Live operational alerts and reminders based on your current Mediflow data."
+                description="Your Mediflow inbox for reminders, workflow updates, and security notices."
             >
                 <Button variant="outline" onClick={() => void refresh()}>
                     <RefreshCw className="mr-2 h-4 w-4" />

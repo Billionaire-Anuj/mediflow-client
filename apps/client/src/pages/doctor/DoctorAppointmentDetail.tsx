@@ -11,6 +11,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ArrowLeft, Calendar, Clock, FileText, FlaskConical, Pill, Stethoscope } from "lucide-react";
 import { format } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
+import { getEncounterWindowState } from "@/lib/encounter-window";
 import { getAvatarUrl, getDiagnosticReportUrl } from "@/lib/auth";
 
 export default function DoctorAppointmentDetail() {
@@ -26,6 +27,7 @@ export default function DoctorAppointmentDetail() {
     const appointment = data?.result;
     const start = combineDateAndTime(appointment?.timeslot?.date, appointment?.timeslot?.startTime);
     const end = combineDateAndTime(appointment?.timeslot?.date, appointment?.timeslot?.endTime);
+    const encounterWindow = getEncounterWindowState(start);
 
     const isPaid = appointment?.isPaidViaGateway || appointment?.isPaidViaOfflineMedium;
     const paymentLabel = appointment?.isPaidViaGateway
@@ -213,9 +215,7 @@ export default function DoctorAppointmentDetail() {
                         <CardContent className="space-y-3 text-sm text-muted-foreground">
                             <div className="flex items-center gap-2">
                                 <Calendar className="h-4 w-4" />
-                                <span>
-                                    {start ? format(start, "MMMM d, yyyy") : "Date not set"}
-                                </span>
+                                <span>{start ? format(start, "MMMM d, yyyy") : "Date not set"}</span>
                             </div>
                             <div className="flex items-center gap-2">
                                 <Clock className="h-4 w-4" />
@@ -223,6 +223,15 @@ export default function DoctorAppointmentDetail() {
                                     {start && end ? `${format(start, "h:mm a")} - ${format(end, "h:mm a")}` : ""}
                                 </span>
                             </div>
+                            {encounterWindow && (
+                                <div className="flex items-center gap-2">
+                                    <Stethoscope className="h-4 w-4" />
+                                    <span>
+                                        Encounter Window: {format(encounterWindow.windowStart, "h:mm a")} -{" "}
+                                        {format(encounterWindow.windowEnd, "h:mm a")}
+                                    </span>
+                                </div>
+                            )}
                             <div className="flex items-center gap-2">
                                 <Stethoscope className="h-4 w-4" />
                                 <span>Fee: Rs. {appointment.fee ?? 0}</span>
@@ -243,13 +252,24 @@ export default function DoctorAppointmentDetail() {
                                     </Link>
                                 </Button>
                             )}
-                            {appointment.status === AppointmentStatus.SCHEDULED && (
-                                <Button className="w-full justify-start" asChild>
-                                    <Link to={`/doctor/encounter/${appointment.id}`}>
+                            {appointment.status === AppointmentStatus.SCHEDULED &&
+                                (encounterWindow?.isWithinWindow ? (
+                                    <Button className="w-full justify-start" asChild>
+                                        <Link to={`/doctor/encounter/${appointment.id}`}>
+                                            <Stethoscope className="h-4 w-4 mr-2" />
+                                            Open Encounter
+                                        </Link>
+                                    </Button>
+                                ) : (
+                                    <Button className="w-full justify-start" disabled>
                                         <Stethoscope className="h-4 w-4 mr-2" />
-                                        Open Encounter
-                                    </Link>
-                                </Button>
+                                        {encounterWindow?.hasWindowNotStarted
+                                            ? "Encounter Not Open Yet"
+                                            : "Encounter Window Closed"}
+                                    </Button>
+                                ))}
+                            {appointment.status === AppointmentStatus.SCHEDULED && encounterWindow && (
+                                <p className="text-xs text-muted-foreground">{encounterWindow.helperText}</p>
                             )}
                         </CardContent>
                     </Card>

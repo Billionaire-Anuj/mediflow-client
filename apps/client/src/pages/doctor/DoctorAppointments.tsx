@@ -26,6 +26,7 @@ import {
 } from "lucide-react";
 import { format, isSameDay } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
+import { getEncounterWindowState } from "@/lib/encounter-window";
 import { getAvatarUrl } from "@/lib/auth";
 
 export default function DoctorAppointments() {
@@ -47,7 +48,7 @@ export default function DoctorAppointments() {
         queryFn: async () => AppointmentService.getAllAppointmentsList({ doctorId })
     });
 
-    const appointments = appointmentsData?.result ?? [];
+    const appointments = useMemo(() => appointmentsData?.result ?? [], [appointmentsData?.result]);
 
     const appointmentsForDate = useMemo(() => {
         return appointments.filter((apt) => {
@@ -312,6 +313,7 @@ export default function DoctorAppointments() {
                                 .map((apt) => {
                                     const start = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.startTime);
                                     const end = combineDateAndTime(apt.timeslot?.date, apt.timeslot?.endTime);
+                                    const encounterWindow = getEncounterWindowState(start);
                                     const patientInitials =
                                         apt.patient?.name
                                             ?.split(" ")
@@ -386,16 +388,31 @@ export default function DoctorAppointments() {
                                                         <Button size="sm" variant="outline" asChild>
                                                             <Link to={`/doctor/appointments/${apt.id}`}>Details</Link>
                                                         </Button>
-                                                        {apt.status === AppointmentStatus.SCHEDULED && (
-                                                            <Button size="sm" asChild>
-                                                                <Link to={`/doctor/encounter/${apt.id}`}>
+                                                        {apt.status === AppointmentStatus.SCHEDULED &&
+                                                            (encounterWindow?.isWithinWindow ? (
+                                                                <Button size="sm" asChild>
+                                                                    <Link to={`/doctor/encounter/${apt.id}`}>
+                                                                        <Play className="h-4 w-4 mr-1" />
+                                                                        Open
+                                                                    </Link>
+                                                                </Button>
+                                                            ) : (
+                                                                <Button size="sm" disabled>
                                                                     <Play className="h-4 w-4 mr-1" />
-                                                                    Open
-                                                                </Link>
-                                                            </Button>
-                                                        )}
+                                                                    {encounterWindow?.hasWindowNotStarted
+                                                                        ? "Not Yet Open"
+                                                                        : "Closed"}
+                                                                </Button>
+                                                            ))}
                                                     </div>
                                                 </div>
+                                                {apt.status === AppointmentStatus.SCHEDULED && encounterWindow && (
+                                                    <p className="mt-3 text-xs text-muted-foreground">
+                                                        Encounter window:{" "}
+                                                        {format(encounterWindow.windowStart, "h:mm a")} -{" "}
+                                                        {format(encounterWindow.windowEnd, "h:mm a")}
+                                                    </p>
+                                                )}
                                             </CardContent>
                                         </Card>
                                     );
