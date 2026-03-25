@@ -87,7 +87,10 @@ const navigationByRole: Record<string, NavEntry[]> = {
         {
             label: "Account",
             icon: User,
-            children: [{ label: "Profile", href: "/doctor/profile", icon: User }]
+            children: [
+                { label: "Notifications", href: "/doctor/notifications", icon: Bell },
+                { label: "Profile", href: "/doctor/profile", icon: User }
+            ]
         }
     ],
     lab: [
@@ -104,7 +107,10 @@ const navigationByRole: Record<string, NavEntry[]> = {
         {
             label: "Account",
             icon: User,
-            children: [{ label: "Profile", href: "/lab/profile", icon: User }]
+            children: [
+                { label: "Notifications", href: "/lab/notifications", icon: Bell },
+                { label: "Profile", href: "/lab/profile", icon: User }
+            ]
         }
     ],
     pharmacist: [
@@ -121,7 +127,10 @@ const navigationByRole: Record<string, NavEntry[]> = {
         {
             label: "Account",
             icon: User,
-            children: [{ label: "Profile", href: "/pharmacist/profile", icon: User }]
+            children: [
+                { label: "Notifications", href: "/pharmacist/notifications", icon: Bell },
+                { label: "Profile", href: "/pharmacist/profile", icon: User }
+            ]
         }
     ],
     admin: [
@@ -160,7 +169,10 @@ const navigationByRole: Record<string, NavEntry[]> = {
         {
             label: "Account",
             icon: User,
-            children: [{ label: "Profile", href: "/admin/profile", icon: User }]
+            children: [
+                { label: "Notifications", href: "/admin/notifications", icon: Bell },
+                { label: "Profile", href: "/admin/profile", icon: User }
+            ]
         }
     ]
 };

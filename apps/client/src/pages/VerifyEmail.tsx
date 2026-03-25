@@ -112,6 +112,7 @@ export default function VerifyEmail() {
                                     render={({ field }) => (
                                         <InputOTP
                                             maxLength={6}
+                                            type="text"
                                             value={field.value}
                                             onChange={field.onChange}
                                             containerClassName="justify-center"

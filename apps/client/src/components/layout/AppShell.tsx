@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Outlet, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
 import { Topbar } from "./Topbar";
 import { Sidebar } from "./Sidebar";
 import { AppRole } from "@/lib/auth";
@@ -28,15 +29,17 @@ export function AppShell({ allowedRoles }: AppShellProps) {
 
     return (
         <div className="min-h-screen bg-background flex">
-            <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
-            <div className="flex-1 flex flex-col min-w-0">
-                <Topbar showMenuButton onMenuClick={() => setSidebarOpen(true)} />
-                <main className="flex-1 overflow-auto">
-                    <div className="page-container">
-                        <Outlet />
-                    </div>
-                </main>
-            </div>
+            <NotificationProvider>
+                <Sidebar open={sidebarOpen} onClose={() => setSidebarOpen(false)} />
+                <div className="flex-1 flex flex-col min-w-0">
+                    <Topbar showMenuButton onMenuClick={() => setSidebarOpen(true)} />
+                    <main className="flex-1 overflow-auto">
+                        <div className="page-container">
+                            <Outlet />
+                        </div>
+                    </main>
+                </div>
+            </NotificationProvider>
         </div>
     );
 }

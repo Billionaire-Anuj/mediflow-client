@@ -27,9 +27,9 @@ import PatientDoctorProfile from "./pages/patient/PatientDoctorProfile";
 import PatientAppointments from "./pages/patient/PatientAppointments";
 import PatientBookAppointment from "./pages/patient/PatientBookAppointment";
 import PatientRecords from "./pages/patient/PatientRecords";
-import PatientNotifications from "./pages/patient/PatientNotifications";
 import PatientProfile from "./pages/patient/PatientProfile";
 import AppointmentDetail from "./pages/AppointmentDetail";
+import NotificationsPage from "./pages/Notifications";
 
 // Doctor pages
 import DoctorDashboard from "./pages/doctor/DoctorDashboard";
@@ -101,7 +101,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route path="appointments/book" element={<PatientBookAppointment />} />
                                 <Route path="appointments/:appointmentId" element={<AppointmentDetail />} />
                                 <Route path="records" element={<PatientRecords />} />
-                                <Route path="notifications" element={<PatientNotifications />} />
+                                <Route path="notifications" element={<NotificationsPage />} />
                                 <Route path="profile" element={<PatientProfile />} />
                             </Route>
 
@@ -114,6 +114,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route path="patients" element={<DoctorPatients />} />
                                 <Route path="patient/:id" element={<DoctorPatientDetail />} />
                                 <Route path="encounter/:appointmentId" element={<DoctorEncounter />} />
+                                <Route path="notifications" element={<NotificationsPage />} />
                                 <Route path="profile" element={<DoctorProfile />} />
                                 <Route path="schedule" element={<DoctorSchedule />} />
                             </Route>
@@ -124,6 +125,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route path="dashboard" element={<LabDashboard />} />
                                 <Route path="requests" element={<LabRequests />} />
                                 <Route path="request/:id" element={<LabRequestDetail />} />
+                                <Route path="notifications" element={<NotificationsPage />} />
                                 <Route path="profile" element={<PatientProfile />} />
                             </Route>
 
@@ -133,6 +135,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route path="dashboard" element={<PharmacyDashboard />} />
                                 <Route path="prescriptions" element={<PharmacyPrescriptions />} />
                                 <Route path="prescription/:id" element={<PharmacyPrescriptionDetail />} />
+                                <Route path="notifications" element={<NotificationsPage />} />
                                 <Route path="profile" element={<PatientProfile />} />
                             </Route>
 
@@ -153,6 +156,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route path="master-data/medicines" element={<AdminMedicines />} />
                                 <Route path="reports" element={<AdminReports />} />
                                 <Route path="audit-logs" element={<AdminAuditLogs />} />
+                                <Route path="notifications" element={<NotificationsPage />} />
                                 <Route path="profile" element={<PatientProfile />} />
                             </Route>
 
