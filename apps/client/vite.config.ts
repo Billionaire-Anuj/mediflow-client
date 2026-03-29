@@ -40,6 +40,12 @@ export default defineConfig(({ mode }) => {
                 src: path.resolve(__dirname, "src")
             }
         },
+        test: {
+            globals: true,
+            environment: "jsdom",
+            setupFiles: "./src/test/setup.ts",
+            restoreMocks: true
+        },
         server: {
             port: 6075,
             proxy: {
