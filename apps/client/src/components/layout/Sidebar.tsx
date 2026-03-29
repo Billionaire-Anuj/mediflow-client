@@ -80,6 +80,7 @@ const navigationByRole: Record<string, NavEntry[]> = {
             icon: Stethoscope,
             children: [
                 { label: "Appointments", href: "/doctor/appointments", icon: Calendar },
+                { label: "Create Appointment", href: "/doctor/appointments/create", icon: HeartPulse },
                 { label: "Patients", href: "/doctor/patients", icon: Users },
                 { label: "Schedule", href: "/doctor/schedule", icon: Clock }
             ]

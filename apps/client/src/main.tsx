@@ -40,6 +40,7 @@ import DoctorPatientDetail from "./pages/doctor/DoctorPatientDetail";
 import DoctorEncounter from "./pages/doctor/DoctorEncounter";
 import DoctorProfile from "./pages/doctor/DoctorProfile";
 import DoctorSchedule from "./pages/doctor/DoctorSchedule";
+import DoctorCreateAppointment from "./pages/doctor/DoctorCreateAppointment";
 
 // Lab pages
 import LabDashboard from "./pages/lab/LabDashboard";
@@ -110,6 +111,7 @@ createRoot(document.getElementById("root") as HTMLElement).render(
                                 <Route index element={<Navigate to="/doctor/dashboard" replace />} />
                                 <Route path="dashboard" element={<DoctorDashboard />} />
                                 <Route path="appointments" element={<DoctorAppointments />} />
+                                <Route path="appointments/create" element={<DoctorCreateAppointment />} />
                                 <Route path="appointments/:appointmentId" element={<DoctorAppointmentDetail />} />
                                 <Route path="patients" element={<DoctorPatients />} />
                                 <Route path="patient/:id" element={<DoctorPatientDetail />} />

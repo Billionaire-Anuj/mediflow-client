@@ -381,6 +381,12 @@ export default function DoctorPatients() {
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
+                                    <Button size="sm" className="flex-1" asChild>
+                                        <Link to={`/doctor/appointments/create?patientId=${patient.id}`}>
+                                            <CalendarPlus className="mr-1 h-4 w-4" />
+                                            Book Appointment
+                                        </Link>
+                                    </Button>
                                     <Button variant="outline" size="sm" className="flex-1" asChild>
                                         <Link to={`/doctor/patient/${patient.id}`}>
                                             <FileText className="h-4 w-4 mr-1" />
