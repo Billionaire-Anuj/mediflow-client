@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Heart, Stethoscope, Users, Building2, ArrowRight, Shield, Clock, CheckCircle } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { MediflowLogo } from "@/components/branding/MediflowLogo";
 
 export default function Landing() {
     const { isAuthenticated, user, isInitializing, logout } = useAuth();
@@ -14,10 +15,7 @@ export default function Landing() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex items-center justify-between h-16">
                         <div className="flex items-center gap-2">
-                            <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center">
-                                <span className="text-primary-foreground font-bold">M</span>
-                            </div>
-                            <span className="font-display font-semibold text-xl">Mediflow</span>
+                            <MediflowLogo markClassName="h-9 w-9" wordmarkClassName="text-xl" className="gap-2" />
                         </div>
                         {!isInitializing && (
                             <div className="flex items-center gap-3">
@@ -188,10 +186,7 @@ export default function Landing() {
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                         <div className="flex items-center gap-2">
-                            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                                <span className="text-primary-foreground font-bold text-sm">M</span>
-                            </div>
-                            <span className="font-display font-semibold">Mediflow</span>
+                            <MediflowLogo markClassName="h-8 w-8" wordmarkClassName="text-base" className="gap-2" />
                         </div>
                         <p className="text-sm text-muted-foreground">
                             © 2026 Mediflow Health Center. All rights reserved.

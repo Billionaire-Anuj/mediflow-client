@@ -6,16 +6,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { DatePicker, DateRangePicker } from "@/components/ui/date-picker";
 import { TimeRangePicker } from "@/components/ui/time-picker";
 import { toast } from "sonner";
-import { isAfter } from "date-fns";
+import { format, isAfter } from "date-fns";
 import type { DateRange } from "react-day-picker";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
 import { formatDateOnly, parseDateOnly } from "@/lib/datetime";
+import { cn } from "@/lib/utils";
+import { CalendarDays, CheckCircle2, Clock3 } from "lucide-react";
 
 const dayOptions = Object.values(DayOfWeek);
 
@@ -39,6 +42,7 @@ export default function DoctorSchedule() {
     const [editingRange, setEditingRange] = useState<DateRange | undefined>();
     const [timeslotStart, setTimeslotStart] = useState<Date | undefined>(new Date());
     const [timeslotEnd, setTimeslotEnd] = useState<Date | undefined>(new Date());
+    const [selectedTimeslotDate, setSelectedTimeslotDate] = useState("");
 
     const { data: profileData, isLoading } = useQuery({
         queryKey: ["doctor-profile"],
@@ -67,6 +71,45 @@ export default function DoctorSchedule() {
 
     const schedules = profileData?.result?.schedules ?? [];
     const timeslots = timeslotData?.result ?? [];
+    const groupedTimeslots = useMemo(() => {
+        const map = new Map<
+            string,
+            {
+                date: string;
+                slots: typeof timeslots;
+            }
+        >();
+
+        for (const slot of timeslots) {
+            const dateKey = slot.date || "";
+            if (!dateKey) continue;
+
+            if (!map.has(dateKey)) {
+                map.set(dateKey, { date: dateKey, slots: [] });
+            }
+
+            map.get(dateKey)?.slots.push(slot);
+        }
+
+        return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
+    }, [timeslots]);
+
+    const selectedTimeslotGroup = groupedTimeslots.find((entry) => entry.date === selectedTimeslotDate) ?? groupedTimeslots[0];
+    const selectedDateLabel = selectedTimeslotGroup?.date
+        ? format(parseDateOnly(selectedTimeslotGroup.date) ?? new Date(selectedTimeslotGroup.date), "EEEE, MMMM d, yyyy")
+        : "No date selected";
+
+    useEffect(() => {
+        if (groupedTimeslots.length === 0) {
+            setSelectedTimeslotDate("");
+            return;
+        }
+
+        const stillExists = groupedTimeslots.some((entry) => entry.date === selectedTimeslotDate);
+        if (!stillExists) {
+            setSelectedTimeslotDate(groupedTimeslots[0].date);
+        }
+    }, [groupedTimeslots, selectedTimeslotDate]);
 
     const scheduleRangeError = useMemo(() => {
         if (!scheduleRange?.from || !scheduleRange?.to) return "Select a valid start and end date.";
@@ -322,22 +365,131 @@ export default function DoctorSchedule() {
                     {timeslotRangeError && <p className="text-xs text-destructive">{timeslotRangeError}</p>}
                     {timeslotLoading ? (
                         <p className="text-sm text-muted-foreground">Loading timeslots...</p>
+                    ) : groupedTimeslots.length === 0 ? (
+                        <p className="text-sm text-muted-foreground">No timeslots in range.</p>
                     ) : (
-                        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                            {timeslots.map((slot) => (
-                                <div key={slot.id} className="p-3 border rounded-lg">
-                                    <p className="font-medium">{slot.date}</p>
-                                    <p className="text-sm text-muted-foreground">
-                                        {slot.startTime} - {slot.endTime}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground">
-                                        {slot.isBooked ? "Booked" : "Available"}
-                                    </p>
+                        <div className="grid gap-5 lg:grid-cols-[280px_minmax(0,1fr)]">
+                            <div className="rounded-3xl border border-border/70 bg-accent/20 p-3">
+                                <div className="mb-3 flex items-center gap-2 px-2">
+                                    <CalendarDays className="h-4 w-4 text-primary" />
+                                    <div>
+                                        <p className="text-sm font-semibold text-foreground">Dates</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Select a day to inspect its timeslots.
+                                        </p>
+                                    </div>
                                 </div>
-                            ))}
-                            {timeslots.length === 0 && (
-                                <p className="text-sm text-muted-foreground">No timeslots in range.</p>
-                            )}
+                                <div className="space-y-2">
+                                    {groupedTimeslots.map((entry) => {
+                                        const parsedDate = parseDateOnly(entry.date) ?? new Date(entry.date);
+                                        const availableCount = entry.slots.filter((slot) => !slot.isBooked).length;
+                                        const bookedCount = entry.slots.length - availableCount;
+                                        const isSelected = entry.date === selectedTimeslotGroup?.date;
+
+                                        return (
+                                            <button
+                                                key={entry.date}
+                                                type="button"
+                                                onClick={() => setSelectedTimeslotDate(entry.date)}
+                                                className={cn(
+                                                    "w-full rounded-2xl border px-4 py-3 text-left transition",
+                                                    isSelected
+                                                        ? "border-primary bg-primary/[0.08] shadow-sm ring-2 ring-primary/10"
+                                                        : "border-transparent bg-background hover:border-primary/20 hover:bg-background"
+                                                )}
+                                            >
+                                                <p className="text-sm font-semibold text-foreground">
+                                                    {format(parsedDate, "EEE, MMM d")}
+                                                </p>
+                                                <p className="mt-1 text-xs text-muted-foreground">
+                                                    {entry.slots.length} total slots
+                                                </p>
+                                                <div className="mt-2 flex flex-wrap gap-2">
+                                                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-700">
+                                                        {availableCount} available
+                                                    </Badge>
+                                                    <Badge variant="secondary" className="bg-rose-50 text-rose-700">
+                                                        {bookedCount} booked
+                                                    </Badge>
+                                                </div>
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            </div>
+
+                            <div className="rounded-3xl border border-border/70 bg-background shadow-sm">
+                                <div className="border-b border-border/60 bg-gradient-to-r from-emerald-50 via-background to-emerald-50/60 px-5 py-4">
+                                    <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                                        <div>
+                                            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700/80">
+                                                Selected date
+                                            </p>
+                                            <h3 className="mt-1 text-lg font-semibold text-foreground">{selectedDateLabel}</h3>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            <Badge variant="secondary" className="bg-white text-emerald-700">
+                                                {selectedTimeslotGroup?.slots.filter((slot) => !slot.isBooked).length ?? 0} available
+                                            </Badge>
+                                            <Badge variant="secondary" className="bg-white text-rose-700">
+                                                {selectedTimeslotGroup?.slots.filter((slot) => slot.isBooked).length ?? 0} booked
+                                            </Badge>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="p-5">
+                                    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                                        {(selectedTimeslotGroup?.slots ?? []).map((slot) => (
+                                            <div
+                                                key={slot.id}
+                                                className={cn(
+                                                    "rounded-2xl border px-4 py-4",
+                                                    slot.isBooked
+                                                        ? "border-rose-200 bg-rose-50/80"
+                                                        : "border-emerald-200 bg-emerald-50/70"
+                                                )}
+                                            >
+                                                <div className="flex items-start justify-between gap-3">
+                                                    <div>
+                                                        <div className="flex items-center gap-2 text-foreground">
+                                                            <Clock3 className="h-4 w-4" />
+                                                            <p className="text-base font-semibold">
+                                                                {slot.startTime} - {slot.endTime}
+                                                            </p>
+                                                        </div>
+                                                        <p className="mt-2 text-xs text-muted-foreground">
+                                                            {slot.isBooked
+                                                                ? "This timeslot has already been reserved by a patient."
+                                                                : "This timeslot is currently open for booking."}
+                                                        </p>
+                                                    </div>
+                                                    <Badge
+                                                        className={cn(
+                                                            slot.isBooked
+                                                                ? "bg-rose-600 text-white hover:bg-rose-600"
+                                                                : "bg-emerald-600 text-white hover:bg-emerald-600"
+                                                        )}
+                                                    >
+                                                        {slot.isBooked ? "Booked" : "Available"}
+                                                    </Badge>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+
+                                    {selectedTimeslotGroup && selectedTimeslotGroup.slots.length > 0 && (
+                                        <div className="mt-5 rounded-2xl border border-dashed border-border/80 bg-accent/20 px-4 py-3 text-sm text-muted-foreground">
+                                            <div className="flex items-start gap-2">
+                                                <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
+                                                <p>
+                                                    Dates are grouped on the left so you can switch days quickly without losing track of which timeslots belong together.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
                         </div>
                     )}
                 </CardContent>

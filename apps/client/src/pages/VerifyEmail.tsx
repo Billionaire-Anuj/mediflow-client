@@ -11,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp";
 import { Loader2, MailCheck } from "lucide-react";
 import { API_BASE_URL, getErrorMessage, getResponseMessage } from "@/lib/api";
+import { MediflowLogo } from "@/components/branding/MediflowLogo";
 
 const AUTH_BASE_URL = API_BASE_URL.replace(/\/$/, "");
 
@@ -80,6 +81,11 @@ export default function VerifyEmail() {
     return (
         <div className="min-h-screen bg-background flex items-center justify-center p-6">
             <div className="w-full max-w-md">
+                <div className="mb-6 flex justify-center">
+                    <Link to="/">
+                        <MediflowLogo markClassName="h-10 w-10" wordmarkClassName="text-2xl" className="gap-2.5" />
+                    </Link>
+                </div>
                 <Card className="border-border">
                     <CardHeader className="space-y-2 text-center">
                         <div className="mx-auto h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">

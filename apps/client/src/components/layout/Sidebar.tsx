@@ -23,6 +23,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { MediflowLogo } from "@/components/branding/MediflowLogo";
 
 interface SidebarProps {
     open?: boolean;
@@ -220,12 +221,7 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 )}
             >
                 <div className="flex items-center justify-between h-16 px-4 border-b border-sidebar-border">
-                    <div className="flex items-center gap-2">
-                        <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                            <HeartPulse className="h-5 w-5 text-primary-foreground" />
-                        </div>
-                        <span className="font-display font-semibold text-lg">Mediflow</span>
-                    </div>
+                    <MediflowLogo markClassName="h-8 w-8" wordmarkClassName="text-lg" className="gap-2" />
 
                     <Button variant="ghost" size="icon" onClick={onClose} className="lg:hidden">
                         <X className="h-5 w-5" />

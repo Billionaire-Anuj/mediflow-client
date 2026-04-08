@@ -13,6 +13,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { LogOut, User, Menu } from "lucide-react";
 import { getRoleLabel } from "@/lib/auth";
+import { MediflowLogo } from "@/components/branding/MediflowLogo";
 
 interface TopbarProps {
     onMenuClick?: () => void;
@@ -40,10 +41,11 @@ export function Topbar({ onMenuClick, showMenuButton = false }: TopbarProps) {
                     </Button>
                 )}
                 <Link to="/" className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                        <span className="text-primary-foreground font-bold text-sm">M</span>
-                    </div>
-                    <span className="font-display font-semibold text-lg text-foreground hidden sm:block">Mediflow</span>
+                    <MediflowLogo
+                        markClassName="h-8 w-8"
+                        wordmarkClassName="hidden text-lg sm:block"
+                        className="gap-2"
+                    />
                 </Link>
             </div>
 

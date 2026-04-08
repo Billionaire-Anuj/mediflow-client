@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Loader2 } from "lucide-react";
 import { API_BASE_URL, getErrorMessage, getResponseMessage } from "@/lib/api";
+import { MediflowLogo } from "@/components/branding/MediflowLogo";
 
 const AUTH_BASE_URL = API_BASE_URL.replace(/\/$/, "");
 
@@ -95,10 +96,7 @@ export default function Register() {
         <div className="min-h-screen bg-background flex">
             <div className="hidden lg:flex lg:w-1/2 bg-gradient-to-br from-primary/10 via-accent to-background p-12 flex-col justify-between">
                 <Link to="/" className="flex items-center gap-2">
-                    <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-                        <span className="text-primary-foreground font-bold text-lg">M</span>
-                    </div>
-                    <span className="font-display font-semibold text-2xl">Mediflow</span>
+                    <MediflowLogo markClassName="h-10 w-10" wordmarkClassName="text-2xl" className="gap-2" />
                 </Link>
 
                 <div className="max-w-md">
@@ -115,10 +113,7 @@ export default function Register() {
                 <div className="w-full max-w-md">
                     <div className="lg:hidden mb-8">
                         <Link to="/" className="flex items-center gap-2 justify-center mb-6">
-                            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-                                <span className="text-primary-foreground font-bold text-lg">M</span>
-                            </div>
-                            <span className="font-display font-semibold text-2xl">Mediflow</span>
+                            <MediflowLogo markClassName="h-10 w-10" wordmarkClassName="text-2xl" className="gap-2" />
                         </Link>
                     </div>
 

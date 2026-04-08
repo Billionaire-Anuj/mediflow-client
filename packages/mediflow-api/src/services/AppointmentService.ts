@@ -181,6 +181,29 @@ export class AppointmentService {
         });
     }
     /**
+     * RescheduleAppointmentByDoctor
+     * Reschedules a patient appointment by doctor.
+     * @returns BooleanResponseDto OK
+     * @throws ApiError
+     */
+    public static rescheduleAppointmentByDoctor({
+        appointmentId,
+        requestBody
+    }: {
+        appointmentId: string;
+        requestBody?: UpdateAppointmentDto;
+    }): CancelablePromise<BooleanResponseDto> {
+        return __request(OpenAPI, {
+            method: "PATCH",
+            url: "/api/v1/appointment/{appointmentId}/doctor/reschedule",
+            path: {
+                appointmentId: appointmentId
+            },
+            body: requestBody,
+            mediaType: "application/json"
+        });
+    }
+    /**
      * CancelAppointment
      * Cancels a scheduled appointment.
      * @returns BooleanResponseDto OK

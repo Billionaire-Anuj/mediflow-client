@@ -16,6 +16,7 @@ import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
+import { MediflowLogo } from "@/components/branding/MediflowLogo";
 
 const loginSchema = z.object({
     email: z.string().trim().min(1, "Email or username is required"),
@@ -218,13 +219,12 @@ export default function Login() {
                 <div className="hidden lg:flex flex-col justify-between border-r border-emerald-100/80 bg-[radial-gradient(circle_at_top_left,rgba(16,185,129,0.22),transparent_35%),linear-gradient(180deg,rgba(5,150,105,0.08),rgba(255,255,255,0.15))] px-14 py-12">
                     <div>
                         <Link to="/" className="inline-flex items-center gap-3">
-                            <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
-                                <span className="text-xl font-bold">M</span>
-                            </div>
-                            <div>
-                                <p className="text-lg font-semibold text-slate-900">Mediflow</p>
-                                <p className="text-sm text-slate-500">Healthcare access platform</p>
-                            </div>
+                            <MediflowLogo
+                                markClassName="h-12 w-12"
+                                wordmarkClassName="text-lg text-slate-900"
+                                tagline="Healthcare access platform"
+                                taglineClassName="text-sm text-slate-500"
+                            />
                         </Link>
 
                         <div className="mt-20 max-w-xl space-y-7">
@@ -282,10 +282,11 @@ export default function Login() {
                     <div className="w-full max-w-xl">
                         <div className="mb-8 lg:hidden">
                             <Link to="/" className="flex items-center justify-center gap-3">
-                                <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-600 text-white shadow-lg shadow-emerald-500/20">
-                                    <span className="text-lg font-bold">M</span>
-                                </div>
-                                <span className="text-2xl font-semibold text-slate-900">Mediflow</span>
+                                <MediflowLogo
+                                    markClassName="h-11 w-11"
+                                    wordmarkClassName="text-2xl text-slate-900"
+                                    className="gap-3"
+                                />
                             </Link>
                         </div>
 
