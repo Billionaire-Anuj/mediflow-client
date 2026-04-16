@@ -160,9 +160,7 @@ export default function PharmacyPrescriptionDetail() {
                                 {medication.status}
                             </StatusBadge>
                             {isDispensed && (
-                                <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">
-                                    Dispensed
-                                </Badge>
+                                <Badge className="bg-emerald-600 text-white hover:bg-emerald-600">Dispensed</Badge>
                             )}
                         </div>
                     </CardContent>

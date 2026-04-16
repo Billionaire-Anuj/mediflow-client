@@ -56,8 +56,7 @@ export default function AppointmentDetail() {
         creditPoints >= (appointment.fee ?? 0);
 
     const payWithCreditsMutation = useMutation({
-        mutationFn: async () =>
-            AppointmentService.payAppointmentWithCredits({ appointmentId: appointmentId! }),
+        mutationFn: async () => AppointmentService.payAppointmentWithCredits({ appointmentId: appointmentId! }),
         onSuccess: (response) => {
             toast.success(getResponseMessage(response));
             queryClient.invalidateQueries({ queryKey: ["appointment", appointmentId] });

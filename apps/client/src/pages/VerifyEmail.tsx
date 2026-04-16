@@ -44,9 +44,7 @@ export default function VerifyEmail() {
 
             if (!response.ok) {
                 const message =
-                    payload && typeof payload === "object" && "message" in payload
-                        ? String(payload.message || "")
-                        : "";
+                    payload && typeof payload === "object" && "message" in payload ? String(payload.message || "") : "";
                 throw new Error(message || response.statusText);
             }
 

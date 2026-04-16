@@ -3,15 +3,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { AppointmentService, AppointmentStatus, DoctorService } from "@mediflow/mediflow-api";
 import { format } from "date-fns";
-import {
-    ArrowLeft,
-    CalendarDays,
-    CalendarPlus,
-    Clock3,
-    Search,
-    Stethoscope,
-    UserRound
-} from "lucide-react";
+import { ArrowLeft, CalendarDays, CalendarPlus, Clock3, Search, Stethoscope, UserRound } from "lucide-react";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,7 +83,8 @@ export default function DoctorCreateAppointment() {
             if (!patient?.id) continue;
 
             const start = combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime);
-            const upcoming = start && start > now && appointment.status === AppointmentStatus.SCHEDULED ? start : undefined;
+            const upcoming =
+                start && start > now && appointment.status === AppointmentStatus.SCHEDULED ? start : undefined;
             const existing = map.get(patient.id);
 
             if (!existing) {
@@ -121,7 +114,11 @@ export default function DoctorCreateAppointment() {
 
     useEffect(() => {
         if (!selectedPatientId && patients.length > 0) {
-            setSelectedPatientId(initialPatientId && patients.some((patient) => patient.id === initialPatientId) ? initialPatientId : patients[0].id);
+            setSelectedPatientId(
+                initialPatientId && patients.some((patient) => patient.id === initialPatientId)
+                    ? initialPatientId
+                    : patients[0].id
+            );
         }
     }, [initialPatientId, patients, selectedPatientId]);
 
@@ -233,7 +230,9 @@ export default function DoctorCreateAppointment() {
                     <Card className="overflow-hidden border-border/60 shadow-sm">
                         <CardHeader className="border-b bg-gradient-to-r from-emerald-50 to-white">
                             <CardTitle className="text-base">Select Patient</CardTitle>
-                            <CardDescription>Pick an existing patient, then choose a date and timeslot.</CardDescription>
+                            <CardDescription>
+                                Pick an existing patient, then choose a date and timeslot.
+                            </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-4 p-4">
                             <div className="relative">
@@ -269,7 +268,10 @@ export default function DoctorCreateAppointment() {
                                             >
                                                 <div className="flex items-start gap-3">
                                                     <Avatar className="h-12 w-12 ring-2 ring-primary/10">
-                                                        <AvatarImage src={getAvatarUrl(patient.profileImageUrl)} alt={patient.name} />
+                                                        <AvatarImage
+                                                            src={getAvatarUrl(patient.profileImageUrl)}
+                                                            alt={patient.name}
+                                                        />
                                                         <AvatarFallback className="bg-primary/10 text-primary">
                                                             {patient.name
                                                                 .split(" ")
@@ -287,12 +289,19 @@ export default function DoctorCreateAppointment() {
                                                             {patient.email || "No email on file"}
                                                         </p>
                                                         {patient.phone && (
-                                                            <p className="text-sm text-muted-foreground">{patient.phone}</p>
+                                                            <p className="text-sm text-muted-foreground">
+                                                                {patient.phone}
+                                                            </p>
                                                         )}
                                                         <div className="flex flex-wrap gap-2 pt-1 text-xs text-muted-foreground">
-                                                            <span>{patient.totalVisits} visit{patient.totalVisits === 1 ? "" : "s"}</span>
+                                                            <span>
+                                                                {patient.totalVisits} visit
+                                                                {patient.totalVisits === 1 ? "" : "s"}
+                                                            </span>
                                                             {patient.nextVisit && (
-                                                                <span>Next: {format(patient.nextVisit, "MMM d, yyyy")}</span>
+                                                                <span>
+                                                                    Next: {format(patient.nextVisit, "MMM d, yyyy")}
+                                                                </span>
                                                             )}
                                                         </div>
                                                     </div>
@@ -309,7 +318,9 @@ export default function DoctorCreateAppointment() {
                         <Card className="border-border/60 shadow-sm">
                             <CardHeader className="border-b bg-gradient-to-r from-white to-emerald-50/70">
                                 <CardTitle className="text-base">Appointment Setup</CardTitle>
-                                <CardDescription>Choose the date, timeslot, and visit details for this patient.</CardDescription>
+                                <CardDescription>
+                                    Choose the date, timeslot, and visit details for this patient.
+                                </CardDescription>
                             </CardHeader>
                             <CardContent className="grid gap-6 p-5 lg:grid-cols-[minmax(0,1fr)_320px]">
                                 <div className="space-y-5">
@@ -342,7 +353,9 @@ export default function DoctorCreateAppointment() {
                                     <div className="space-y-2">
                                         <Label>Timeslot</Label>
                                         {timeslotsLoading ? (
-                                            <p className="text-sm text-muted-foreground">Loading available timeslots...</p>
+                                            <p className="text-sm text-muted-foreground">
+                                                Loading available timeslots...
+                                            </p>
                                         ) : timeslotsData?.result?.length ? (
                                             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                                                 {timeslotsData.result.map((slot) => {
@@ -370,13 +383,17 @@ export default function DoctorCreateAppointment() {
                                                                     {start ? format(start, "h:mm a") : "Time"}
                                                                 </span>
                                                                 {slot.isBooked ? (
-                                                                    <Badge className="bg-rose-600 text-white hover:bg-rose-600">Booked</Badge>
+                                                                    <Badge className="bg-rose-600 text-white hover:bg-rose-600">
+                                                                        Booked
+                                                                    </Badge>
                                                                 ) : isSelected ? (
                                                                     <Badge variant="secondary">Selected</Badge>
                                                                 ) : null}
                                                             </div>
                                                             <p className="mt-1 text-xs text-muted-foreground">
-                                                                {end ? `Until ${format(end, "h:mm a")}` : "Available slot"}
+                                                                {end
+                                                                    ? `Until ${format(end, "h:mm a")}`
+                                                                    : "Available slot"}
                                                             </p>
                                                         </button>
                                                     );
@@ -419,7 +436,10 @@ export default function DoctorCreateAppointment() {
                                         {selectedPatient ? (
                                             <div className="flex items-center gap-3 rounded-2xl border border-emerald-100 bg-white p-3">
                                                 <Avatar className="h-12 w-12 ring-2 ring-primary/10">
-                                                    <AvatarImage src={getAvatarUrl(selectedPatient.profileImageUrl)} alt={selectedPatient.name} />
+                                                    <AvatarImage
+                                                        src={getAvatarUrl(selectedPatient.profileImageUrl)}
+                                                        alt={selectedPatient.name}
+                                                    />
                                                     <AvatarFallback className="bg-primary/10 text-primary">
                                                         {selectedPatient.name
                                                             .split(" ")
@@ -445,7 +465,9 @@ export default function DoctorCreateAppointment() {
                                             <div className="flex items-center justify-between gap-3">
                                                 <span className="text-muted-foreground">Date</span>
                                                 <span className="font-medium">
-                                                    {appointmentDate ? format(appointmentDate, "MMM d, yyyy") : "Not selected"}
+                                                    {appointmentDate
+                                                        ? format(appointmentDate, "MMM d, yyyy")
+                                                        : "Not selected"}
                                                 </span>
                                             </div>
                                             <div className="flex items-center justify-between gap-3">
@@ -453,8 +475,13 @@ export default function DoctorCreateAppointment() {
                                                 <span className="font-medium">
                                                     {selectedTimeslotId
                                                         ? (() => {
-                                                              const selectedSlot = timeslotsData?.result?.find((slot) => slot.id === selectedTimeslotId);
-                                                              const start = combineDateAndTime(selectedSlot?.date, selectedSlot?.startTime);
+                                                              const selectedSlot = timeslotsData?.result?.find(
+                                                                  (slot) => slot.id === selectedTimeslotId
+                                                              );
+                                                              const start = combineDateAndTime(
+                                                                  selectedSlot?.date,
+                                                                  selectedSlot?.startTime
+                                                              );
                                                               return start ? format(start, "h:mm a") : "Selected";
                                                           })()
                                                         : "Not selected"}
@@ -466,12 +493,15 @@ export default function DoctorCreateAppointment() {
                                             </div>
                                             <div className="flex items-center justify-between gap-3">
                                                 <span className="text-muted-foreground">Symptoms</span>
-                                                <span className="font-medium">{symptoms.trim() ? "Added" : "None"}</span>
+                                                <span className="font-medium">
+                                                    {symptoms.trim() ? "Added" : "None"}
+                                                </span>
                                             </div>
                                         </div>
 
                                         <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] p-4 text-muted-foreground">
-                                            The appointment will be created under your own schedule, and the patient will receive a notification once it is booked.
+                                            The appointment will be created under your own schedule, and the patient
+                                            will receive a notification once it is booked.
                                         </div>
 
                                         <div className="flex flex-col gap-2">
@@ -480,7 +510,9 @@ export default function DoctorCreateAppointment() {
                                                 disabled={!canSubmit || createAppointmentMutation.isPending}
                                             >
                                                 <CalendarPlus className="mr-2 h-4 w-4" />
-                                                {createAppointmentMutation.isPending ? "Creating..." : "Create Appointment"}
+                                                {createAppointmentMutation.isPending
+                                                    ? "Creating..."
+                                                    : "Create Appointment"}
                                             </Button>
                                             <Button variant="outline" asChild>
                                                 <Link to="/doctor/patients">

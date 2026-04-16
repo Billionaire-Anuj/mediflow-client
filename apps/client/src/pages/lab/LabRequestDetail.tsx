@@ -315,10 +315,7 @@ export default function LabRequestDetail() {
                                         interpretation: ""
                                     };
                                     const isTestLocked =
-                                        isResulted ||
-                                        lockedTests.has(test.id || "") ||
-                                        !!test.result ||
-                                        !!test.report;
+                                        isResulted || lockedTests.has(test.id || "") || !!test.result || !!test.report;
                                     const reportUrl = getDiagnosticReportUrl(test.report?.fileUrl);
                                     return (
                                         <AccordionItem key={testKey} value={testKey} className="border rounded-xl">
@@ -458,7 +455,10 @@ export default function LabRequestDetail() {
                                                                     onChange={(e) => {
                                                                         const file = e.target.files?.[0];
                                                                         if (file && test.id) {
-                                                                            uploadMutation.mutate({ testId: test.id, file });
+                                                                            uploadMutation.mutate({
+                                                                                testId: test.id,
+                                                                                file
+                                                                            });
                                                                         }
                                                                     }}
                                                                 />

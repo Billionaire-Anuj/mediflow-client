@@ -190,9 +190,7 @@ export default function PatientProfile() {
 
             if (!response.ok) {
                 const message =
-                    payload && typeof payload === "object" && "message" in payload
-                        ? String(payload.message || "")
-                        : "";
+                    payload && typeof payload === "object" && "message" in payload ? String(payload.message || "") : "";
                 throw new Error(message || response.statusText);
             }
 
@@ -337,8 +335,7 @@ export default function PatientProfile() {
         }
     };
 
-    const defaultTab =
-        isPatient && (searchParams.has("pidx") || searchParams.has("data")) ? "security" : "profile";
+    const defaultTab = isPatient && (searchParams.has("pidx") || searchParams.has("data")) ? "security" : "profile";
 
     return (
         <div className="space-y-6 animate-fade-in">

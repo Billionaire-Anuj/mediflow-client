@@ -10,15 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
 import { DashboardChart } from "@/components/ui/echarts";
-import {
-    Activity,
-    Calendar,
-    FileText,
-    Pill,
-    Play,
-    Star,
-    Users
-} from "lucide-react";
+import { Activity, Calendar, FileText, Pill, Play, Star, Users } from "lucide-react";
 import { format, isAfter, isSameDay, startOfWeek, subDays } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
 
@@ -64,7 +56,9 @@ export default function DoctorDashboard() {
         const prescriptionOrders = appointments.reduce((count, apt) => count + (apt.medications?.length || 0), 0);
         const completionRate =
             appointments.length > 0
-                ? Math.round((appointments.filter((apt) => apt.status === "Completed").length / appointments.length) * 100)
+                ? Math.round(
+                      (appointments.filter((apt) => apt.status === "Completed").length / appointments.length) * 100
+                  )
                 : 0;
 
         appointments.forEach((apt) => {

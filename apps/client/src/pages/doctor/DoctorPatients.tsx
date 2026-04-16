@@ -11,7 +11,14 @@ import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { DatePicker } from "@/components/ui/date-picker";
@@ -367,9 +374,7 @@ export default function DoctorPatients() {
                                             Next Visit
                                         </span>
                                         <span>
-                                            {patient.nextVisit
-                                                ? format(patient.nextVisit, "MMM d, yyyy")
-                                                : "N/A"}
+                                            {patient.nextVisit ? format(patient.nextVisit, "MMM d, yyyy") : "N/A"}
                                         </span>
                                     </div>
                                     <div className="flex items-center justify-between">
@@ -443,7 +448,10 @@ export default function DoctorPatients() {
                                             type="email"
                                             value={patientForm.emailAddress}
                                             onChange={(event) =>
-                                                setPatientForm((prev) => ({ ...prev, emailAddress: event.target.value }))
+                                                setPatientForm((prev) => ({
+                                                    ...prev,
+                                                    emailAddress: event.target.value
+                                                }))
                                             }
                                         />
                                     </div>

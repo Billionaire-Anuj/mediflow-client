@@ -113,11 +113,14 @@ export default function PharmacyDashboard() {
         });
 
         const labels = days.map((day) => format(day, "EEE"));
-        const created = days.map((day) =>
-            prescriptions.filter((item) => item.createdAt && isSameDay(new Date(item.createdAt), day)).length
+        const created = days.map(
+            (day) => prescriptions.filter((item) => item.createdAt && isSameDay(new Date(item.createdAt), day)).length
         );
-        const dispensed = days.map((day) =>
-            prescriptions.filter((item) => item.status === "Collected" && item.createdAt && isSameDay(new Date(item.createdAt), day)).length
+        const dispensed = days.map(
+            (day) =>
+                prescriptions.filter(
+                    (item) => item.status === "Collected" && item.createdAt && isSameDay(new Date(item.createdAt), day)
+                ).length
         );
 
         return {

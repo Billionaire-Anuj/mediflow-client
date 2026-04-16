@@ -363,7 +363,10 @@ export default function Login() {
                                                     <ArrowLeft className="mr-2 h-4 w-4" />
                                                     Back to sign in
                                                 </Button>
-                                                <Button type="submit" disabled={isLoading || authenticationCode.length !== 6}>
+                                                <Button
+                                                    type="submit"
+                                                    disabled={isLoading || authenticationCode.length !== 6}
+                                                >
                                                     {isLoading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                                                     Verify and continue
                                                 </Button>
@@ -388,7 +391,9 @@ export default function Login() {
                                                         className={errors.email ? "border-destructive" : ""}
                                                     />
                                                     {errors.email && (
-                                                        <p className="text-xs text-destructive">{errors.email.message}</p>
+                                                        <p className="text-xs text-destructive">
+                                                            {errors.email.message}
+                                                        </p>
                                                     )}
                                                 </div>
 
@@ -430,7 +435,10 @@ export default function Login() {
 
                                             <p className="text-center text-sm text-muted-foreground">
                                                 Don&apos;t have an account?{" "}
-                                                <Link to="/register" className="font-medium text-primary hover:underline">
+                                                <Link
+                                                    to="/register"
+                                                    className="font-medium text-primary hover:underline"
+                                                >
                                                     Register here
                                                 </Link>
                                             </p>
@@ -448,7 +456,9 @@ export default function Login() {
 
                                             <div className="grid gap-5">
                                                 <div className="rounded-3xl border border-emerald-100 bg-emerald-50/40 p-5">
-                                                    <p className="text-sm font-semibold text-slate-900">1. Request reset OTP</p>
+                                                    <p className="text-sm font-semibold text-slate-900">
+                                                        1. Request reset OTP
+                                                    </p>
                                                     <p className="mt-1 text-sm text-slate-600">
                                                         We’ll send a confirmation code to the email address linked to
                                                         this account.
@@ -459,7 +469,9 @@ export default function Login() {
                                                         className="mt-4 space-y-4"
                                                     >
                                                         <div className="space-y-2">
-                                                            <Label htmlFor="forgot-emailOrUsername">Email / Username</Label>
+                                                            <Label htmlFor="forgot-emailOrUsername">
+                                                                Email / Username
+                                                            </Label>
                                                             <Input
                                                                 id="forgot-emailOrUsername"
                                                                 placeholder="Enter your email or username"
@@ -477,7 +489,11 @@ export default function Login() {
                                                             )}
                                                         </div>
 
-                                                        <Button type="submit" variant="outline" disabled={isRequestingReset}>
+                                                        <Button
+                                                            type="submit"
+                                                            variant="outline"
+                                                            disabled={isRequestingReset}
+                                                        >
                                                             {isRequestingReset && (
                                                                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                                                             )}
@@ -488,7 +504,9 @@ export default function Login() {
 
                                                 <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                                                     <div className="flex flex-wrap items-center gap-3">
-                                                        <p className="text-sm font-semibold text-slate-900">2. Verify OTP and create new password</p>
+                                                        <p className="text-sm font-semibold text-slate-900">
+                                                            2. Verify OTP and create new password
+                                                        </p>
                                                         {forgotIdentifier ? (
                                                             <Badge className="bg-emerald-100 text-emerald-800 hover:bg-emerald-100">
                                                                 OTP sent for {forgotIdentifier}
@@ -501,7 +519,9 @@ export default function Login() {
                                                         className="mt-4 space-y-4"
                                                     >
                                                         <div className="space-y-2">
-                                                            <Label htmlFor="reset-emailOrUsername">Email / Username</Label>
+                                                            <Label htmlFor="reset-emailOrUsername">
+                                                                Email / Username
+                                                            </Label>
                                                             <Input
                                                                 id="reset-emailOrUsername"
                                                                 placeholder="Enter your email or username"
@@ -526,9 +546,13 @@ export default function Login() {
                                                                 maxLength={6}
                                                                 value={forgotOtp}
                                                                 onChange={(value) =>
-                                                                    setForgotResetValue("otp", value.replace(/\D/g, "").slice(0, 6), {
-                                                                        shouldValidate: true
-                                                                    })
+                                                                    setForgotResetValue(
+                                                                        "otp",
+                                                                        value.replace(/\D/g, "").slice(0, 6),
+                                                                        {
+                                                                            shouldValidate: true
+                                                                        }
+                                                                    )
                                                                 }
                                                             >
                                                                 <InputOTPGroup className="grid w-full grid-cols-6 gap-2">
@@ -557,7 +581,9 @@ export default function Login() {
                                                                     placeholder="Create a new password"
                                                                     {...registerForgotReset("password")}
                                                                     className={
-                                                                        forgotResetErrors.password ? "border-destructive" : ""
+                                                                        forgotResetErrors.password
+                                                                            ? "border-destructive"
+                                                                            : ""
                                                                     }
                                                                 />
                                                                 {forgotResetErrors.password && (
@@ -568,7 +594,9 @@ export default function Login() {
                                                             </div>
 
                                                             <div className="space-y-2">
-                                                                <Label htmlFor="reset-confirmPassword">Confirm Password</Label>
+                                                                <Label htmlFor="reset-confirmPassword">
+                                                                    Confirm Password
+                                                                </Label>
                                                                 <Input
                                                                     id="reset-confirmPassword"
                                                                     type="password"

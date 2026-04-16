@@ -9,13 +9,7 @@ interface RatingStarsProps {
     showValue?: boolean;
 }
 
-export function RatingStars({
-    rating = 0,
-    max = 5,
-    size = 14,
-    className,
-    showValue = false
-}: RatingStarsProps) {
+export function RatingStars({ rating = 0, max = 5, size = 14, className, showValue = false }: RatingStarsProps) {
     const filledCount = Math.floor(rating || 0);
 
     return (
@@ -25,18 +19,13 @@ export function RatingStars({
                 return (
                     <Star
                         key={`rating-star-${index}`}
-                        className={cn(
-                            "shrink-0",
-                            filled ? "text-amber-400" : "text-muted-foreground/40"
-                        )}
+                        className={cn("shrink-0", filled ? "text-amber-400" : "text-muted-foreground/40")}
                         style={{ width: size, height: size }}
                         fill={filled ? "currentColor" : "transparent"}
                     />
                 );
             })}
-            {showValue && (
-                <span className="text-xs text-muted-foreground">{rating?.toFixed(1)}</span>
-            )}
+            {showValue && <span className="text-xs text-muted-foreground">{rating?.toFixed(1)}</span>}
         </div>
     );
 }
@@ -50,14 +39,7 @@ interface RatingInputProps {
     disabled?: boolean;
 }
 
-export function RatingInput({
-    value,
-    max = 5,
-    size = 20,
-    className,
-    onChange,
-    disabled = false
-}: RatingInputProps) {
+export function RatingInput({ value, max = 5, size = 20, className, onChange, disabled = false }: RatingInputProps) {
     return (
         <div className={cn("flex items-center gap-2", className)} role="radiogroup">
             {Array.from({ length: max }).map((_, index) => {
@@ -77,10 +59,7 @@ export function RatingInput({
                         aria-pressed={filled}
                     >
                         <Star
-                            className={cn(
-                                "shrink-0",
-                                filled ? "text-amber-400" : "text-muted-foreground/40"
-                            )}
+                            className={cn("shrink-0", filled ? "text-amber-400" : "text-muted-foreground/40")}
                             style={{ width: size, height: size }}
                             fill={filled ? "currentColor" : "transparent"}
                         />

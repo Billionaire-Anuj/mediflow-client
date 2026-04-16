@@ -102,7 +102,10 @@ export default function DoctorPatientDetail() {
                 <CardContent className="p-6">
                     <div className="flex items-center gap-4">
                         <Avatar className="h-16 w-16 ring-2 ring-primary/10">
-                            <AvatarImage src={getAvatarUrl(patient.profileImage?.fileUrl)} alt={patient.name || "Patient"} />
+                            <AvatarImage
+                                src={getAvatarUrl(patient.profileImage?.fileUrl)}
+                                alt={patient.name || "Patient"}
+                            />
                             <AvatarFallback className="bg-primary/10 text-primary font-semibold text-lg">
                                 {(patient.name || "Patient")
                                     .split(" ")

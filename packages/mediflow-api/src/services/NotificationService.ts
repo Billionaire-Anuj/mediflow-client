@@ -48,7 +48,11 @@ export class NotificationService {
      * @returns BooleanResponseDto OK
      * @throws ApiError
      */
-    public static markNotificationAsRead({ notificationId }: { notificationId: string }): CancelablePromise<BooleanResponseDto> {
+    public static markNotificationAsRead({
+        notificationId
+    }: {
+        notificationId: string;
+    }): CancelablePromise<BooleanResponseDto> {
         return __request(OpenAPI, {
             method: "PATCH",
             url: "/api/v1/notification/{notificationId}/read",

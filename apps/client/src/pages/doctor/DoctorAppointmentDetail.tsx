@@ -9,12 +9,29 @@ import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ArrowLeft, Calendar, CalendarClock, CheckCircle2, Clock, FileText, FlaskConical, Pill, Stethoscope } from "lucide-react";
+import {
+    ArrowLeft,
+    Calendar,
+    CalendarClock,
+    CheckCircle2,
+    Clock,
+    FileText,
+    FlaskConical,
+    Pill,
+    Stethoscope
+} from "lucide-react";
 import { format } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
 import { getEncounterWindowState } from "@/lib/encounter-window";
 import { getAvatarUrl, getDiagnosticReportUrl } from "@/lib/auth";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle
+} from "@/components/ui/dialog";
 import { DatePicker } from "@/components/ui/date-picker";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -43,7 +60,9 @@ export default function DoctorAppointmentDetail() {
     const end = combineDateAndTime(appointment?.timeslot?.date, appointment?.timeslot?.endTime);
     const encounterWindow = getEncounterWindowState(start);
     const selectedDateString = rescheduleDate ? format(rescheduleDate, "yyyy-MM-dd") : "";
-    const currentDateString = appointment?.timeslot?.date ? format(new Date(appointment.timeslot.date), "yyyy-MM-dd") : "";
+    const currentDateString = appointment?.timeslot?.date
+        ? format(new Date(appointment.timeslot.date), "yyyy-MM-dd")
+        : "";
 
     const { data: doctorTimeslotsData, isLoading: doctorTimeslotsLoading } = useQuery({
         queryKey: ["doctor-timeslots", selectedDateString],
@@ -72,7 +91,8 @@ export default function DoctorAppointmentDetail() {
     const openRescheduleDialog = () => {
         if (!appointment) return;
 
-        const appointmentDate = combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime) ?? new Date();
+        const appointmentDate =
+            combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime) ?? new Date();
         setRescheduleDate(appointmentDate);
         setSelectedTimeslotId(appointment.timeslot?.id || "");
         setRescheduleNotes(appointment.notes || "");
@@ -83,7 +103,8 @@ export default function DoctorAppointmentDetail() {
     useEffect(() => {
         if (!appointment) return;
 
-        const appointmentDate = combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime) ?? new Date();
+        const appointmentDate =
+            combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime) ?? new Date();
         setRescheduleDate(appointmentDate);
         setSelectedTimeslotId(appointment.timeslot?.id || "");
         setRescheduleNotes(appointment.notes || "");
@@ -424,18 +445,25 @@ export default function DoctorAppointmentDetail() {
                                                             {selectedDateLabel}
                                                         </p>
                                                         <p className="mt-1 text-sm text-muted-foreground">
-                                                            Available slots are shown first. Booked ones stay separate so the reschedule path is easier to scan.
+                                                            Available slots are shown first. Booked ones stay separate
+                                                            so the reschedule path is easier to scan.
                                                         </p>
                                                     </div>
                                                     <div className="flex flex-wrap gap-2">
-                                                        <Badge variant="secondary" className="bg-white text-emerald-700">
+                                                        <Badge
+                                                            variant="secondary"
+                                                            className="bg-white text-emerald-700"
+                                                        >
                                                             {availableTimeslots.length} available
                                                         </Badge>
                                                         <Badge variant="secondary" className="bg-white text-rose-600">
                                                             {unavailableTimeslots.length} booked
                                                         </Badge>
                                                         {isCurrentDateSelected && (
-                                                            <Badge variant="secondary" className="bg-white text-primary">
+                                                            <Badge
+                                                                variant="secondary"
+                                                                className="bg-white text-primary"
+                                                            >
                                                                 Current appointment date
                                                             </Badge>
                                                         )}
@@ -446,9 +474,12 @@ export default function DoctorAppointmentDetail() {
                                             <div className="space-y-3">
                                                 <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
                                                     <div>
-                                                        <p className="text-sm font-semibold text-foreground">Available slots</p>
+                                                        <p className="text-sm font-semibold text-foreground">
+                                                            Available slots
+                                                        </p>
                                                         <p className="text-xs text-muted-foreground">
-                                                            Choose a free slot, or keep the current slot if it still works.
+                                                            Choose a free slot, or keep the current slot if it still
+                                                            works.
                                                         </p>
                                                     </div>
                                                     {selectedSlot && (
@@ -456,8 +487,14 @@ export default function DoctorAppointmentDetail() {
                                                             <CheckCircle2 className="h-3.5 w-3.5" />
                                                             Selected:{" "}
                                                             {(() => {
-                                                                const slotStart = combineDateAndTime(selectedSlot.date, selectedSlot.startTime);
-                                                                const slotEnd = combineDateAndTime(selectedSlot.date, selectedSlot.endTime);
+                                                                const slotStart = combineDateAndTime(
+                                                                    selectedSlot.date,
+                                                                    selectedSlot.startTime
+                                                                );
+                                                                const slotEnd = combineDateAndTime(
+                                                                    selectedSlot.date,
+                                                                    selectedSlot.endTime
+                                                                );
                                                                 return slotStart && slotEnd
                                                                     ? `${format(slotStart, "h:mm a")} - ${format(slotEnd, "h:mm a")}`
                                                                     : "Timeslot selected";
@@ -488,14 +525,20 @@ export default function DoctorAppointmentDetail() {
                                                                 <div className="flex items-start justify-between gap-3">
                                                                     <div>
                                                                         <p className="text-lg font-semibold text-foreground">
-                                                                            {slotStart ? format(slotStart, "h:mm a") : "Timeslot"}
+                                                                            {slotStart
+                                                                                ? format(slotStart, "h:mm a")
+                                                                                : "Timeslot"}
                                                                         </p>
                                                                         <p className="mt-1 text-xs text-muted-foreground">
-                                                                            {slotEnd ? `Until ${format(slotEnd, "h:mm a")}` : "Available slot"}
+                                                                            {slotEnd
+                                                                                ? `Until ${format(slotEnd, "h:mm a")}`
+                                                                                : "Available slot"}
                                                                         </p>
                                                                     </div>
                                                                     <div className="flex flex-col items-end gap-2">
-                                                                        {isCurrentSlot && <Badge variant="secondary">Current</Badge>}
+                                                                        {isCurrentSlot && (
+                                                                            <Badge variant="secondary">Current</Badge>
+                                                                        )}
                                                                         {isSelected && (
                                                                             <Badge className="bg-primary text-primary-foreground hover:bg-primary">
                                                                                 Selected
@@ -512,14 +555,20 @@ export default function DoctorAppointmentDetail() {
                                             {unavailableTimeslots.length > 0 && (
                                                 <div className="space-y-3">
                                                     <div>
-                                                        <p className="text-sm font-semibold text-foreground">Booked slots</p>
+                                                        <p className="text-sm font-semibold text-foreground">
+                                                            Booked slots
+                                                        </p>
                                                         <p className="text-xs text-muted-foreground">
-                                                            These times are already taken on this day and are not available for rescheduling.
+                                                            These times are already taken on this day and are not
+                                                            available for rescheduling.
                                                         </p>
                                                     </div>
                                                     <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
                                                         {unavailableTimeslots.map((slot) => {
-                                                            const slotStart = combineDateAndTime(slot.date, slot.startTime);
+                                                            const slotStart = combineDateAndTime(
+                                                                slot.date,
+                                                                slot.startTime
+                                                            );
                                                             const slotEnd = combineDateAndTime(slot.date, slot.endTime);
 
                                                             return (
@@ -530,10 +579,14 @@ export default function DoctorAppointmentDetail() {
                                                                     <div className="flex items-start justify-between gap-3">
                                                                         <div>
                                                                             <p className="text-lg font-semibold">
-                                                                                {slotStart ? format(slotStart, "h:mm a") : "Booked"}
+                                                                                {slotStart
+                                                                                    ? format(slotStart, "h:mm a")
+                                                                                    : "Booked"}
                                                                             </p>
                                                                             <p className="mt-1 text-xs text-rose-600/80">
-                                                                                {slotEnd ? `Until ${format(slotEnd, "h:mm a")}` : "Unavailable slot"}
+                                                                                {slotEnd
+                                                                                    ? `Until ${format(slotEnd, "h:mm a")}`
+                                                                                    : "Unavailable slot"}
                                                                             </p>
                                                                         </div>
                                                                         <Badge className="bg-rose-600 text-white hover:bg-rose-600">
@@ -593,8 +646,14 @@ export default function DoctorAppointmentDetail() {
                                         <span className="font-medium">
                                             {selectedSlot
                                                 ? (() => {
-                                                      const slotStart = combineDateAndTime(selectedSlot.date, selectedSlot.startTime);
-                                                      const slotEnd = combineDateAndTime(selectedSlot.date, selectedSlot.endTime);
+                                                      const slotStart = combineDateAndTime(
+                                                          selectedSlot.date,
+                                                          selectedSlot.startTime
+                                                      );
+                                                      const slotEnd = combineDateAndTime(
+                                                          selectedSlot.date,
+                                                          selectedSlot.endTime
+                                                      );
                                                       return slotStart && slotEnd
                                                           ? `${format(slotStart, "h:mm a")} - ${format(slotEnd, "h:mm a")}`
                                                           : "Selected";
@@ -604,7 +663,8 @@ export default function DoctorAppointmentDetail() {
                                     </div>
                                 </div>
                                 <p className="text-xs text-muted-foreground">
-                                    The patient will receive an appointment update notification once you confirm the reschedule.
+                                    The patient will receive an appointment update notification once you confirm the
+                                    reschedule.
                                 </p>
                             </CardContent>
                         </Card>
@@ -614,7 +674,10 @@ export default function DoctorAppointmentDetail() {
                         <Button variant="outline" onClick={() => setRescheduleDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={() => rescheduleMutation.mutate()} disabled={!canReschedule || rescheduleMutation.isPending}>
+                        <Button
+                            onClick={() => rescheduleMutation.mutate()}
+                            disabled={!canReschedule || rescheduleMutation.isPending}
+                        >
                             {rescheduleMutation.isPending ? "Rescheduling..." : "Confirm Reschedule"}
                         </Button>
                     </DialogFooter>

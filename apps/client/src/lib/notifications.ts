@@ -1,5 +1,14 @@
 import { NotificationType, type NotificationDto } from "@mediflow/mediflow-api";
-import { AlertCircle, Bell, CalendarClock, ClipboardList, FlaskConical, Pill, ShieldAlert, type LucideIcon } from "lucide-react";
+import {
+    AlertCircle,
+    Bell,
+    CalendarClock,
+    ClipboardList,
+    FlaskConical,
+    Pill,
+    ShieldAlert,
+    type LucideIcon
+} from "lucide-react";
 import type { AppRole } from "@/lib/auth";
 
 export type AppNotificationType = "appointment" | "lab" | "prescription" | "admin" | "system";
@@ -21,9 +30,15 @@ export interface NotificationTriggerDefinition {
 
 export const notificationTriggersByRole: Record<AppRole, NotificationTriggerDefinition[]> = {
     patient: [
-        { title: "Appointment updates", description: "Bookings, reschedules, cancellations, and payment confirmations." },
+        {
+            title: "Appointment updates",
+            description: "Bookings, reschedules, cancellations, and payment confirmations."
+        },
         { title: "30-minute reminders", description: "A timed reminder before your scheduled consultation starts." },
-        { title: "Consultation summaries", description: "Alerts when a doctor completes your visit and uploads notes." },
+        {
+            title: "Consultation summaries",
+            description: "Alerts when a doctor completes your visit and uploads notes."
+        },
         { title: "Lab results", description: "Notifications when diagnostic results are ready to review." },
         { title: "Prescription progress", description: "Updates when your prescription has been dispensed." },
         { title: "Wallet activity", description: "Credit top-up confirmations and refund-related updates." }
@@ -31,7 +46,10 @@ export const notificationTriggersByRole: Record<AppRole, NotificationTriggerDefi
     doctor: [
         { title: "New bookings", description: "Appointments created by patients or by you on behalf of patients." },
         { title: "Schedule changes", description: "Patient reschedules, cancellations, and payment confirmations." },
-        { title: "Clinical follow-up", description: "Lab results returned for your patients and completed prescriptions." },
+        {
+            title: "Clinical follow-up",
+            description: "Lab results returned for your patients and completed prescriptions."
+        },
         { title: "Patient feedback", description: "Reviews submitted after completed appointments." }
     ],
     lab: [
@@ -45,7 +63,10 @@ export const notificationTriggersByRole: Record<AppRole, NotificationTriggerDefi
     ],
     admin: [
         { title: "Security alerts", description: "Failed login attempts and blocked authentication events." },
-        { title: "Operational changes", description: "Appointment cancellations and other cross-system events worth review." }
+        {
+            title: "Operational changes",
+            description: "Appointment cancellations and other cross-system events worth review."
+        }
     ]
 };
 
@@ -136,9 +157,11 @@ export const getNotificationEmptyState = (role: AppRole) => {
         }
     };
 
-    return emptyStateByRole[role] || {
-        title: "No notifications yet",
-        description: "Updates will appear here once activity starts.",
-        icon: AlertCircle
-    };
+    return (
+        emptyStateByRole[role] || {
+            title: "No notifications yet",
+            description: "Updates will appear here once activity starts.",
+            icon: AlertCircle
+        }
+    );
 };

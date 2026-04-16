@@ -49,7 +49,8 @@ export default function PatientDoctors() {
         return doctors.filter((doctor) => {
             const name = doctor.name?.toLowerCase() || "";
             const specTitles = (doctor.specializations || []).map((spec) => spec.title?.toLowerCase() || "");
-            const matchesSearch = name.includes(query) || specTitles.some((specialization) => specialization.includes(query));
+            const matchesSearch =
+                name.includes(query) || specTitles.some((specialization) => specialization.includes(query));
             const matchesSpecialization =
                 selectedSpecialization === "all" ||
                 (doctor.specializations || []).some((spec) => spec.title === selectedSpecialization);
@@ -108,7 +109,9 @@ export default function PatientDoctors() {
                     <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
                         <div>
                             <p className="text-xs text-muted-foreground">Consultation Fee</p>
-                            <p className="text-lg font-semibold text-foreground">Rs. {doctor.consultationFee ?? "N/A"}</p>
+                            <p className="text-lg font-semibold text-foreground">
+                                Rs. {doctor.consultationFee ?? "N/A"}
+                            </p>
                         </div>
                         <div className="flex flex-wrap gap-2">
                             <Button asChild variant="outline" size="sm">
@@ -151,9 +154,12 @@ export default function PatientDoctors() {
                     {fromDiscovery && recommendedSpecialization && (
                         <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4">
                             <div>
-                                <p className="text-sm font-medium text-slate-900">Specialty filter applied from Symptom Discovery</p>
+                                <p className="text-sm font-medium text-slate-900">
+                                    Specialty filter applied from Symptom Discovery
+                                </p>
                                 <p className="text-sm text-slate-600">
-                                    We filtered this page to <span className="font-semibold">{recommendedSpecialization}</span>.
+                                    We filtered this page to{" "}
+                                    <span className="font-semibold">{recommendedSpecialization}</span>.
                                 </p>
                             </div>
                             <Button variant="outline" asChild>
@@ -208,7 +214,8 @@ export default function PatientDoctors() {
                             Need help choosing a specialty?
                         </div>
                         <p className="text-sm text-muted-foreground">
-                            Use Symptom Discovery to enter vitals and symptom checklists, then come back here with the specialty filter applied.
+                            Use Symptom Discovery to enter vitals and symptom checklists, then come back here with the
+                            specialty filter applied.
                         </p>
                     </div>
                     <Button asChild>

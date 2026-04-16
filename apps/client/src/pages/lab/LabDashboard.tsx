@@ -75,9 +75,7 @@ export default function LabDashboard() {
         });
 
         const labels = days.map((day) => format(day, "EEE"));
-        const values = days.map((day) =>
-            diagnostics.filter((item) => item.start && isSameDay(item.start, day)).length
-        );
+        const values = days.map((day) => diagnostics.filter((item) => item.start && isSameDay(item.start, day)).length);
 
         return {
             animationDuration: 700,

@@ -3,7 +3,7 @@ import { AuthenticationService, ProfileService } from "@mediflow/mediflow-api";
 import { AuthUser, mapProfileToUser } from "@/lib/auth";
 import { getErrorMessage } from "@/lib/api";
 
-interface AuthContextType {
+export interface AuthContextType {
     user: AuthUser | null;
     isAuthenticated: boolean;
     login: (

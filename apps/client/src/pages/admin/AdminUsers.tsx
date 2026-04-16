@@ -327,9 +327,7 @@ export default function AdminUsers() {
                                     <label className="flex items-center gap-2 text-sm">
                                         <Checkbox
                                             checked={genderValue === Gender.MALE}
-                                            onCheckedChange={(checked) =>
-                                                onGenderChange(Gender.MALE, Boolean(checked))
-                                            }
+                                            onCheckedChange={(checked) => onGenderChange(Gender.MALE, Boolean(checked))}
                                         />
                                         <span>Male</span>
                                     </label>
@@ -369,9 +367,7 @@ export default function AdminUsers() {
                                     <label htmlFor="admin-profile-image" className="cursor-pointer">
                                         <Upload className="h-6 w-6 mx-auto text-muted-foreground mb-2" />
                                         {profileImage ? (
-                                            <p className="text-sm text-foreground font-medium">
-                                                {profileImage.name}
-                                            </p>
+                                            <p className="text-sm text-foreground font-medium">{profileImage.name}</p>
                                         ) : (
                                             <p className="text-sm text-muted-foreground">
                                                 Click to upload a profile image

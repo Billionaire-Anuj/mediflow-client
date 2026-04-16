@@ -70,15 +70,14 @@ export default function AdminDashboard() {
         });
 
         const labels = months.map((month) => format(month, "MMM"));
-        const values = months.map((month) =>
-            appointments.filter((appointment) => {
-                const start = combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime);
-                return (
-                    !!start &&
-                    start.getMonth() === month.getMonth() &&
-                    start.getFullYear() === month.getFullYear()
-                );
-            }).length
+        const values = months.map(
+            (month) =>
+                appointments.filter((appointment) => {
+                    const start = combineDateAndTime(appointment.timeslot?.date, appointment.timeslot?.startTime);
+                    return (
+                        !!start && start.getMonth() === month.getMonth() && start.getFullYear() === month.getFullYear()
+                    );
+                }).length
         );
 
         return {
@@ -249,9 +248,7 @@ export default function AdminDashboard() {
                                     <p className="mt-2 text-3xl font-semibold text-slate-900">{stats.doctors}</p>
                                 </div>
                                 <div className="rounded-2xl border border-violet-100 bg-violet-50/80 p-4">
-                                    <p className="text-xs uppercase tracking-[0.14em] text-slate-500">
-                                        Gateway paid
-                                    </p>
+                                    <p className="text-xs uppercase tracking-[0.14em] text-slate-500">Gateway paid</p>
                                     <p className="mt-2 text-3xl font-semibold text-slate-900">
                                         {stats.gatewayPayments}
                                     </p>
@@ -264,9 +261,7 @@ export default function AdminDashboard() {
                         <CardContent className="p-6">
                             <div className="flex items-center justify-between">
                                 <div>
-                                    <p className="text-xs uppercase tracking-[0.18em] text-teal-300">
-                                        Today's load
-                                    </p>
+                                    <p className="text-xs uppercase tracking-[0.18em] text-teal-300">Today's load</p>
                                     <p className="mt-2 text-4xl font-semibold">{stats.appointmentsToday}</p>
                                     <p className="mt-1 text-sm text-slate-300">Appointments scheduled for today</p>
                                 </div>
@@ -315,7 +310,9 @@ export default function AdminDashboard() {
                     <CardContent className="p-5">
                         <div className="flex items-center justify-between">
                             <div>
-                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">Appointments</p>
+                                <p className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                                    Appointments
+                                </p>
                                 <p className="mt-2 text-3xl font-semibold">{appointments.length}</p>
                             </div>
                             <div className="rounded-2xl bg-sky-100 p-3 text-sky-700">
@@ -431,12 +428,15 @@ export default function AdminDashboard() {
                                                 </div>
                                             </div>
                                             <div className="flex flex-wrap items-center gap-2">
-                                                <StatusBadge variant={getStatusVariant(appointment.status || "scheduled")}>
+                                                <StatusBadge
+                                                    variant={getStatusVariant(appointment.status || "scheduled")}
+                                                >
                                                     {appointment.status}
                                                 </StatusBadge>
                                                 <StatusBadge
                                                     variant={
-                                                        appointment.isPaidViaGateway || appointment.isPaidViaOfflineMedium
+                                                        appointment.isPaidViaGateway ||
+                                                        appointment.isPaidViaOfflineMedium
                                                             ? "success"
                                                             : "warning"
                                                     }

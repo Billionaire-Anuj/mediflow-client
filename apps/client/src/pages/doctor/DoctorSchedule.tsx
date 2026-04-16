@@ -94,9 +94,13 @@ export default function DoctorSchedule() {
         return Array.from(map.values()).sort((a, b) => a.date.localeCompare(b.date));
     }, [timeslots]);
 
-    const selectedTimeslotGroup = groupedTimeslots.find((entry) => entry.date === selectedTimeslotDate) ?? groupedTimeslots[0];
+    const selectedTimeslotGroup =
+        groupedTimeslots.find((entry) => entry.date === selectedTimeslotDate) ?? groupedTimeslots[0];
     const selectedDateLabel = selectedTimeslotGroup?.date
-        ? format(parseDateOnly(selectedTimeslotGroup.date) ?? new Date(selectedTimeslotGroup.date), "EEEE, MMMM d, yyyy")
+        ? format(
+              parseDateOnly(selectedTimeslotGroup.date) ?? new Date(selectedTimeslotGroup.date),
+              "EEEE, MMMM d, yyyy"
+          )
         : "No date selected";
 
     useEffect(() => {
@@ -272,9 +276,7 @@ export default function DoctorSchedule() {
                                 <TimeRangePicker
                                     startValue={newSchedule.startTime || ""}
                                     endValue={newSchedule.endTime || ""}
-                                    onStartChange={(value) =>
-                                        setNewSchedule((prev) => ({ ...prev, startTime: value }))
-                                    }
+                                    onStartChange={(value) => setNewSchedule((prev) => ({ ...prev, startTime: value }))}
                                     onEndChange={(value) => setNewSchedule((prev) => ({ ...prev, endTime: value }))}
                                 />
                             </div>
@@ -405,7 +407,10 @@ export default function DoctorSchedule() {
                                                     {entry.slots.length} total slots
                                                 </p>
                                                 <div className="mt-2 flex flex-wrap gap-2">
-                                                    <Badge variant="secondary" className="bg-emerald-50 text-emerald-700">
+                                                    <Badge
+                                                        variant="secondary"
+                                                        className="bg-emerald-50 text-emerald-700"
+                                                    >
                                                         {availableCount} available
                                                     </Badge>
                                                     <Badge variant="secondary" className="bg-rose-50 text-rose-700">
@@ -425,14 +430,20 @@ export default function DoctorSchedule() {
                                             <p className="text-xs font-semibold uppercase tracking-[0.24em] text-emerald-700/80">
                                                 Selected date
                                             </p>
-                                            <h3 className="mt-1 text-lg font-semibold text-foreground">{selectedDateLabel}</h3>
+                                            <h3 className="mt-1 text-lg font-semibold text-foreground">
+                                                {selectedDateLabel}
+                                            </h3>
                                         </div>
                                         <div className="flex flex-wrap gap-2">
                                             <Badge variant="secondary" className="bg-white text-emerald-700">
-                                                {selectedTimeslotGroup?.slots.filter((slot) => !slot.isBooked).length ?? 0} available
+                                                {selectedTimeslotGroup?.slots.filter((slot) => !slot.isBooked).length ??
+                                                    0}{" "}
+                                                available
                                             </Badge>
                                             <Badge variant="secondary" className="bg-white text-rose-700">
-                                                {selectedTimeslotGroup?.slots.filter((slot) => slot.isBooked).length ?? 0} booked
+                                                {selectedTimeslotGroup?.slots.filter((slot) => slot.isBooked).length ??
+                                                    0}{" "}
+                                                booked
                                             </Badge>
                                         </div>
                                     </div>
@@ -483,7 +494,8 @@ export default function DoctorSchedule() {
                                             <div className="flex items-start gap-2">
                                                 <CheckCircle2 className="mt-0.5 h-4 w-4 text-primary" />
                                                 <p>
-                                                    Dates are grouped on the left so you can switch days quickly without losing track of which timeslots belong together.
+                                                    Dates are grouped on the left so you can switch days quickly without
+                                                    losing track of which timeslots belong together.
                                                 </p>
                                             </div>
                                         </div>
@@ -530,14 +542,10 @@ export default function DoctorSchedule() {
                                     startValue={editingSchedule.startTime || ""}
                                     endValue={editingSchedule.endTime || ""}
                                     onStartChange={(value) =>
-                                        setEditingSchedule((prev) =>
-                                            prev ? { ...prev, startTime: value } : prev
-                                        )
+                                        setEditingSchedule((prev) => (prev ? { ...prev, startTime: value } : prev))
                                     }
                                     onEndChange={(value) =>
-                                        setEditingSchedule((prev) =>
-                                            prev ? { ...prev, endTime: value } : prev
-                                        )
+                                        setEditingSchedule((prev) => (prev ? { ...prev, endTime: value } : prev))
                                     }
                                 />
                             </div>
@@ -575,9 +583,7 @@ export default function DoctorSchedule() {
                                     value={editingSchedule.notes || ""}
                                     placeholder="Additional notes"
                                     onChange={(e) =>
-                                        setEditingSchedule((prev) =>
-                                            prev ? { ...prev, notes: e.target.value } : prev
-                                        )
+                                        setEditingSchedule((prev) => (prev ? { ...prev, notes: e.target.value } : prev))
                                     }
                                 />
                             </div>

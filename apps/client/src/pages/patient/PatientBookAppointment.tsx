@@ -2,11 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { addDays, format, isSameDay } from "date-fns";
-import {
-    AppointmentService,
-    DoctorService,
-    type TimeslotDto
-} from "@mediflow/mediflow-api";
+import { AppointmentService, DoctorService, type TimeslotDto } from "@mediflow/mediflow-api";
 import { PageHeader } from "@/components/ui/page-header";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,8 +17,7 @@ import { getErrorMessage, getResponseMessage } from "@/lib/api";
 import { toast } from "sonner";
 import { CalendarDays, CheckCircle2, Clock, Stethoscope, XCircle } from "lucide-react";
 
-const buildDateOptions = (start: Date) =>
-    Array.from({ length: 7 }).map((_, index) => addDays(start, index));
+const buildDateOptions = (start: Date) => Array.from({ length: 7 }).map((_, index) => addDays(start, index));
 
 export default function PatientBookAppointment() {
     const navigate = useNavigate();
@@ -122,10 +117,7 @@ export default function PatientBookAppointment() {
 
     return (
         <div className="space-y-6 animate-fade-in">
-            <PageHeader
-                title="Book Your Appointment"
-                description="Select a doctor, date, and time for your visit"
-            />
+            <PageHeader title="Book Your Appointment" description="Select a doctor, date, and time for your visit" />
 
             <div className="grid gap-6 lg:grid-cols-[2fr_1fr]">
                 <div className="space-y-6">
@@ -179,9 +171,7 @@ export default function PatientBookAppointment() {
                                             <div className="flex-1">
                                                 <div className="flex items-center gap-2">
                                                     <p className="font-semibold text-foreground">{doctor.name}</p>
-                                                    {isSelected && (
-                                                        <Badge variant="secondary">Selected</Badge>
-                                                    )}
+                                                    {isSelected && <Badge variant="secondary">Selected</Badge>}
                                                 </div>
                                                 <p className="text-sm text-muted-foreground">{doctorSpecializations}</p>
                                                 <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
@@ -272,7 +262,9 @@ export default function PatientBookAppointment() {
                                                         {slot.isBooked ? (
                                                             <XCircle className="h-4 w-4" />
                                                         ) : (
-                                                            isSelected && <CheckCircle2 className="h-4 w-4 text-primary" />
+                                                            isSelected && (
+                                                                <CheckCircle2 className="h-4 w-4 text-primary" />
+                                                            )
                                                         )}
                                                     </button>
                                                 );
@@ -394,7 +386,8 @@ export default function PatientBookAppointment() {
                                     <div>
                                         <p className="font-medium">{schedule.dayOfWeek}</p>
                                         <p className="text-xs text-muted-foreground">
-                                            {schedule.validStartDate || ""} {schedule.validEndDate ? `- ${schedule.validEndDate}` : ""}
+                                            {schedule.validStartDate || ""}{" "}
+                                            {schedule.validEndDate ? `- ${schedule.validEndDate}` : ""}
                                         </p>
                                     </div>
                                     <span className="text-muted-foreground">
@@ -411,7 +404,10 @@ export default function PatientBookAppointment() {
                         </CardHeader>
                         <CardContent className="space-y-3 text-sm text-muted-foreground">
                             <div className="flex items-start gap-2">
-                                <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center" variant="secondary">
+                                <Badge
+                                    className="h-6 w-6 rounded-full p-0 flex items-center justify-center"
+                                    variant="secondary"
+                                >
                                     <Clock className="h-3 w-3" />
                                 </Badge>
                                 <div>
@@ -420,7 +416,10 @@ export default function PatientBookAppointment() {
                                 </div>
                             </div>
                             <div className="flex items-start gap-2">
-                                <Badge className="h-6 w-6 rounded-full p-0 flex items-center justify-center" variant="secondary">
+                                <Badge
+                                    className="h-6 w-6 rounded-full p-0 flex items-center justify-center"
+                                    variant="secondary"
+                                >
                                     <Stethoscope className="h-3 w-3" />
                                 </Badge>
                                 <div>

@@ -139,7 +139,11 @@ export function TwoFactorSettingsCard() {
                                 </Badge>
                             </div>
                         </div>
-                        <Switch checked={isEnabled || isPendingSetup} disabled={isBusy} onCheckedChange={handleToggle} />
+                        <Switch
+                            checked={isEnabled || isPendingSetup}
+                            disabled={isBusy}
+                            onCheckedChange={handleToggle}
+                        />
                     </div>
                 </div>
             </CardHeader>
@@ -214,7 +218,12 @@ export function TwoFactorSettingsCard() {
                                             {setup?.manualEntryKey || "Unavailable"}
                                         </p>
                                     </div>
-                                    <Button type="button" variant="outline" className="border-emerald-200" onClick={handleCopyKey}>
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        className="border-emerald-200"
+                                        onClick={handleCopyKey}
+                                    >
                                         <Copy className="mr-2 h-4 w-4" />
                                         Copy Key
                                     </Button>
@@ -242,15 +251,22 @@ export function TwoFactorSettingsCard() {
 
                             <Alert className="border-amber-200 bg-amber-50">
                                 <AlertTriangle className="h-4 w-4 text-amber-700" />
-                                <AlertTitle className="text-amber-900">Activation completes only after verification</AlertTitle>
+                                <AlertTitle className="text-amber-900">
+                                    Activation completes only after verification
+                                </AlertTitle>
                                 <AlertDescription className="text-amber-800">
-                                    Until the 6-digit code is confirmed, 2FA is not active yet and you can still
-                                    cancel this setup.
+                                    Until the 6-digit code is confirmed, 2FA is not active yet and you can still cancel
+                                    this setup.
                                 </AlertDescription>
                             </Alert>
 
                             <div className="flex flex-col gap-3 sm:flex-row sm:justify-end">
-                                <Button type="button" variant="outline" onClick={() => handleToggle(false)} disabled={isBusy}>
+                                <Button
+                                    type="button"
+                                    variant="outline"
+                                    onClick={() => handleToggle(false)}
+                                    disabled={isBusy}
+                                >
                                     Cancel Setup
                                 </Button>
                                 <Button
@@ -270,7 +286,9 @@ export function TwoFactorSettingsCard() {
                     <div className="rounded-3xl border border-dashed border-emerald-200 bg-gradient-to-r from-emerald-50/70 to-white p-5">
                         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
                             <div className="space-y-1">
-                                <p className="text-sm font-semibold text-slate-900">Enable stronger sign-in protection</p>
+                                <p className="text-sm font-semibold text-slate-900">
+                                    Enable stronger sign-in protection
+                                </p>
                                 <p className="text-sm text-slate-600">
                                     Turn this on to require a time-based code from your authenticator app in addition to
                                     your password.

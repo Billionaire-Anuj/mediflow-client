@@ -12,17 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DateRangePicker } from "@/components/ui/date-picker";
-import {
-    Calendar,
-    Clock,
-    Download,
-    FileText,
-    Filter,
-    FlaskConical,
-    Pill,
-    Search,
-    User
-} from "lucide-react";
+import { Calendar, Clock, Download, FileText, Filter, FlaskConical, Pill, Search, User } from "lucide-react";
 import { format, isAfter, isBefore, startOfDay } from "date-fns";
 import { combineDateAndTime } from "@/lib/datetime";
 import { getDiagnosticReportUrl } from "@/lib/auth";
@@ -125,10 +115,8 @@ export default function PatientRecords() {
         const totalTests = filteredRecords.reduce(
             (sum, record) =>
                 sum +
-                (record.diagnostics?.reduce(
-                    (acc, diagnostic) => acc + (diagnostic.diagnosticTests?.length || 0),
-                    0
-                ) || 0),
+                (record.diagnostics?.reduce((acc, diagnostic) => acc + (diagnostic.diagnosticTests?.length || 0), 0) ||
+                    0),
             0
         );
 
@@ -142,8 +130,9 @@ export default function PatientRecords() {
     }, [filteredRecords]);
 
     const activeFilterCount = useMemo(() => {
-        return [searchQuery.trim(), doctorFilter !== "all", recordTypeFilter !== "all", !!dateRange?.from].filter(Boolean)
-            .length;
+        return [searchQuery.trim(), doctorFilter !== "all", recordTypeFilter !== "all", !!dateRange?.from].filter(
+            Boolean
+        ).length;
     }, [dateRange?.from, doctorFilter, recordTypeFilter, searchQuery]);
 
     const exportRecordsToPdf = () => {
@@ -595,7 +584,9 @@ export default function PatientRecords() {
 
                     {activeFilterCount > 0 && (
                         <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
-                            <span>{activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} applied</span>
+                            <span>
+                                {activeFilterCount} filter{activeFilterCount === 1 ? "" : "s"} applied
+                            </span>
                             <span>•</span>
                             <span>{filteredRecords.length} records found</span>
                         </div>
@@ -654,9 +645,7 @@ export default function PatientRecords() {
                                                         <div className="flex items-center gap-2">
                                                             <Calendar className="h-4 w-4" />
                                                             <span>
-                                                                {start
-                                                                    ? format(start, "MMMM d, yyyy")
-                                                                    : "Date not set"}
+                                                                {start ? format(start, "MMMM d, yyyy") : "Date not set"}
                                                             </span>
                                                         </div>
                                                         <div className="flex items-center gap-2">
@@ -807,8 +796,10 @@ export default function PatientRecords() {
                                                                                         className="border-t"
                                                                                     >
                                                                                         <td className="p-2">
-                                                                                            {result.diagnosticTest
-                                                                                                ?.title}
+                                                                                            {
+                                                                                                result.diagnosticTest
+                                                                                                    ?.title
+                                                                                            }
                                                                                         </td>
                                                                                         <td className="p-2">
                                                                                             {result.result?.value}{" "}
@@ -816,17 +807,19 @@ export default function PatientRecords() {
                                                                                         </td>
                                                                                         <td className="p-2 text-muted-foreground">
                                                                                             {result.result?.lowerRange}{" "}
-                                                                                            - {result.result?.upperRange}
+                                                                                            -{" "}
+                                                                                            {result.result?.upperRange}
                                                                                         </td>
                                                                                         <td className="p-2">
-                                                                                            {result.result?.interpretation ||
-                                                                                                ""}
+                                                                                            {result.result
+                                                                                                ?.interpretation || ""}
                                                                                         </td>
                                                                                         <td className="p-2">
                                                                                             {result.report?.fileUrl ? (
                                                                                                 <a
                                                                                                     href={getDiagnosticReportUrl(
-                                                                                                        result.report.fileUrl
+                                                                                                        result.report
+                                                                                                            .fileUrl
                                                                                                     )}
                                                                                                     target="_blank"
                                                                                                     rel="noreferrer"

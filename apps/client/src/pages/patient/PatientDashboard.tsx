@@ -79,9 +79,7 @@ export default function PatientDashboard() {
         const values = months.map((month) => {
             const count = appointmentMoments.filter((item) => {
                 if (!item.start) return false;
-                return (
-                    item.start.getMonth() === month.getMonth() && item.start.getFullYear() === month.getFullYear()
-                );
+                return item.start.getMonth() === month.getMonth() && item.start.getFullYear() === month.getFullYear();
             }).length;
 
             return count;
