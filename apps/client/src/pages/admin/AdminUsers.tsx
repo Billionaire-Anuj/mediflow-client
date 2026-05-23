@@ -13,6 +13,7 @@ import { StatusBadge, getStatusVariant } from "@/components/ui/status-badge";
 import { ListSkeleton } from "@/components/ui/loading-skeleton";
 import { EmptyState } from "@/components/ui/empty-state";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { getAvatarUrl } from "@/lib/auth";
 import { API_BASE_URL, getErrorMessage, getResponseMessage } from "@/lib/api";
@@ -42,6 +43,7 @@ export default function AdminUsers() {
     const [selectedUser, setSelectedUser] = useState<UserDto | null>(null);
     const [isCreateOpen, setIsCreateOpen] = useState(false);
     const [profileImage, setProfileImage] = useState<File | null>(null);
+    const [statusTarget, setStatusTarget] = useState<UserDto | null>(null);
 
     const { data, isLoading } = useQuery({
         queryKey: ["admin-users"],
@@ -60,6 +62,7 @@ export default function AdminUsers() {
         onSuccess: (data) => {
             toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+            setStatusTarget(null);
         },
         onError: (error) => toast.error(getErrorMessage(error))
     });
@@ -219,7 +222,7 @@ export default function AdminUsers() {
                                 size="sm"
                                 variant="outline"
                                 disabled={user.role?.name === "Super Admin"}
-                                onClick={() => user.id && toggleMutation.mutate(user.id)}
+                                onClick={() => setStatusTarget(user)}
                             >
                                 <Ban className="h-4 w-4 mr-1" />
                                 Deactivate
@@ -228,7 +231,7 @@ export default function AdminUsers() {
                             <Button
                                 size="sm"
                                 disabled={user.role?.name === "Super Admin"}
-                                onClick={() => user.id && toggleMutation.mutate(user.id)}
+                                onClick={() => setStatusTarget(user)}
                             >
                                 <CheckCircle className="h-4 w-4 mr-1" />
                                 Activate
@@ -488,6 +491,18 @@ export default function AdminUsers() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!statusTarget}
+                onOpenChange={(open) => !open && setStatusTarget(null)}
+                title={`${statusTarget?.isActive ? "Deactivate" : "Activate"} user`}
+                description={`Are you sure you want to ${
+                    statusTarget?.isActive ? "deactivate" : "activate"
+                } ${statusTarget?.name || "this user"}?`}
+                confirmLabel={statusTarget?.isActive ? "Deactivate" : "Activate"}
+                variant={statusTarget?.isActive ? "destructive" : "default"}
+                onConfirm={() => statusTarget?.id && toggleMutation.mutate(statusTarget.id)}
+            />
         </div>
     );
 }

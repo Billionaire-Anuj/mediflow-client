@@ -19,9 +19,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { Settings, Plus, Edit, Trash2, Save, Loader2 } from "lucide-react";
+import { Settings, Plus, Edit, Trash2, Save, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
@@ -47,9 +48,25 @@ type EditItem = {
     format?: string;
 };
 
+type ConfigItem = SpecializationDto | DiagnosticTypeDto | DiagnosticTestDto | MedicationTypeDto | MedicineDto;
+
+type StatusTarget = {
+    type: EditType;
+    item: ConfigItem;
+};
+
+const typeLabels: Record<EditType, string> = {
+    specialization: "specialization",
+    diagnosticType: "diagnostic type",
+    diagnosticTest: "diagnostic test",
+    medicationType: "medication type",
+    medicine: "medicine"
+};
+
 export default function AdminConfig() {
     const queryClient = useQueryClient();
     const [editingItem, setEditingItem] = useState<EditItem | null>(null);
+    const [statusTarget, setStatusTarget] = useState<StatusTarget | null>(null);
 
     const { data: specializationData, isLoading: specializationLoading } = useQuery({
         queryKey: ["specializations"],
@@ -201,6 +218,7 @@ export default function AdminConfig() {
         onSuccess: (data) => {
             toast.success(getResponseMessage(data));
             invalidateAll();
+            setStatusTarget(null);
         },
         onError: (error) => toast.error(getErrorMessage(error))
     });
@@ -223,10 +241,7 @@ export default function AdminConfig() {
         }
     };
 
-    const renderList = (
-        type: EditType,
-        items: Array<SpecializationDto | DiagnosticTypeDto | DiagnosticTestDto | MedicationTypeDto | MedicineDto>
-    ) => (
+    const renderList = (type: EditType, items: ConfigItem[]) => (
         <div className="space-y-2">
             {items.map(
                 (item: SpecializationDto | DiagnosticTypeDto | DiagnosticTestDto | MedicationTypeDto | MedicineDto) => (
@@ -259,10 +274,10 @@ export default function AdminConfig() {
                             <Button
                                 variant="ghost"
                                 size="icon"
-                                className="h-8 w-8 text-destructive"
-                                onClick={() => item.id && toggleMutation.mutate({ type, id: item.id })}
+                                className={`h-8 w-8 ${item.isActive ? "text-destructive" : "text-status-success"}`}
+                                onClick={() => setStatusTarget({ type, item })}
                             >
-                                <Trash2 className="h-3 w-3" />
+                                {item.isActive ? <Trash2 className="h-3 w-3" /> : <CheckCircle className="h-3 w-3" />}
                             </Button>
                         </div>
                     </div>
@@ -510,6 +525,23 @@ export default function AdminConfig() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!statusTarget}
+                onOpenChange={(open) => !open && setStatusTarget(null)}
+                title={`${statusTarget?.item.isActive ? "Deactivate" : "Activate"} ${
+                    statusTarget ? typeLabels[statusTarget.type] : "record"
+                }`}
+                description={`Are you sure you want to ${
+                    statusTarget?.item.isActive ? "deactivate" : "activate"
+                } ${statusTarget?.item.title || "this record"}?`}
+                confirmLabel={statusTarget?.item.isActive ? "Deactivate" : "Activate"}
+                variant={statusTarget?.item.isActive ? "destructive" : "default"}
+                onConfirm={() =>
+                    statusTarget?.item.id &&
+                    toggleMutation.mutate({ type: statusTarget.type, id: statusTarget.item.id })
+                }
+            />
         </div>
     );
 }

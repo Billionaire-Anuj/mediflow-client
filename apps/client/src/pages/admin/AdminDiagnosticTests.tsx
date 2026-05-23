@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { CardSkeleton } from "@/components/ui/loading-skeleton";
-import { Plus, Edit, Trash2, Save, Loader2 } from "lucide-react";
+import { Plus, Edit, Trash2, Save, Loader2, CheckCircle } from "lucide-react";
 import { toast } from "sonner";
 import { getErrorMessage, getResponseMessage } from "@/lib/api";
 
@@ -30,6 +31,7 @@ type EditItem = {
 export default function AdminDiagnosticTests() {
     const queryClient = useQueryClient();
     const [editingItem, setEditingItem] = useState<EditItem | null>(null);
+    const [statusTarget, setStatusTarget] = useState<DiagnosticTestDto | null>(null);
 
     const { data: testData, isLoading: testLoading } = useQuery({
         queryKey: ["diagnostic-tests"],
@@ -88,6 +90,7 @@ export default function AdminDiagnosticTests() {
         onSuccess: (data) => {
             toast.success(getResponseMessage(data));
             queryClient.invalidateQueries({ queryKey: ["diagnostic-tests"] });
+            setStatusTarget(null);
         },
         onError: (error) => toast.error(getErrorMessage(error))
     });
@@ -156,10 +159,14 @@ export default function AdminDiagnosticTests() {
                                 <Button
                                     variant="ghost"
                                     size="icon"
-                                    className="h-8 w-8 text-destructive"
-                                    onClick={() => item.id && toggleMutation.mutate(item.id)}
+                                    className={`h-8 w-8 ${item.isActive ? "text-destructive" : "text-status-success"}`}
+                                    onClick={() => setStatusTarget(item)}
                                 >
-                                    <Trash2 className="h-3 w-3" />
+                                    {item.isActive ? (
+                                        <Trash2 className="h-3 w-3" />
+                                    ) : (
+                                        <CheckCircle className="h-3 w-3" />
+                                    )}
                                 </Button>
                             </div>
                         </div>
@@ -246,6 +253,18 @@ export default function AdminDiagnosticTests() {
                     )}
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                open={!!statusTarget}
+                onOpenChange={(open) => !open && setStatusTarget(null)}
+                title={`${statusTarget?.isActive ? "Deactivate" : "Activate"} diagnostic test`}
+                description={`Are you sure you want to ${
+                    statusTarget?.isActive ? "deactivate" : "activate"
+                } ${statusTarget?.title || "this diagnostic test"}?`}
+                confirmLabel={statusTarget?.isActive ? "Deactivate" : "Activate"}
+                variant={statusTarget?.isActive ? "destructive" : "default"}
+                onConfirm={() => statusTarget?.id && toggleMutation.mutate(statusTarget.id)}
+            />
         </div>
     );
 }
